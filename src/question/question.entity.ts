@@ -8,9 +8,10 @@ import {
 import { Survey } from '../survey/survey.entity';
 import { Option } from '../option/option.entity';
 import { Answer } from '../answer/answer.entity';
+import { BaseEntity } from '../base/base.entity';
 
 @Entity()
-export class Question {
+export class Question extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

@@ -7,9 +7,10 @@ import {
 } from 'typeorm';
 import { Question } from '../question/question.entity';
 import { Answer } from '../answer/answer.entity';
+import { BaseEntity } from '../base/base.entity';
 
 @Entity()
-export class Option {
+export class Option extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

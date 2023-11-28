@@ -1,9 +1,10 @@
 import { Entity, PrimaryGeneratedColumn, ManyToOne, Column } from 'typeorm';
 import { Question } from '../question/question.entity';
 import { Option } from '../option/option.entity';
+import { BaseEntity } from '../base/base.entity';
 
 @Entity()
-export class Answer {
+export class Answer extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
