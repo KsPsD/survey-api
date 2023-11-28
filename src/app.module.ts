@@ -4,6 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { AppResolver } from './app.resolver';
+import { SurveyModule } from './survey/survey.module';
+import { SurveyResolver } from './survey/survey.resolver';
 
 @Module({
   imports: [
@@ -12,6 +14,7 @@ import { AppResolver } from './app.resolver';
       driver: ApolloDriver,
       autoSchemaFile: true,
     }),
+    SurveyModule,
   ],
   providers: [AppResolver],
 })
