@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Survey } from './survey.entity';
@@ -7,7 +7,7 @@ import { CreateSurveyInput, UpdateSurveyInput } from './dto/survey.input';
 @Injectable()
 export class SurveyService {
   constructor(
-    @InjectRepository(Survey)
+    @Inject('SURVEY_REPOSITORY')
     private surveyRepository: Repository<Survey>,
   ) {}
 

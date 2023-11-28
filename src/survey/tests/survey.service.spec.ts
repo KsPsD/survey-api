@@ -3,6 +3,7 @@ import { SurveyService } from '../survey.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Survey } from '../survey.entity';
 import { NotFoundException } from '@nestjs/common/exceptions';
+import { SurveyRepository } from '../survey.repository';
 
 describe('SurveyService', () => {
   let service: SurveyService;
@@ -21,7 +22,7 @@ describe('SurveyService', () => {
       providers: [
         SurveyService,
         {
-          provide: getRepositoryToken(Survey),
+          provide: 'SURVEY_REPOSITORY',
           useValue: mockSurveyRepository,
         },
       ],
