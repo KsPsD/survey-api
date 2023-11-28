@@ -3,6 +3,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { AppResolver } from './app.resolver';
 import { SurveyModule } from './survey/survey.module';
+import { QuestionModule } from './question/question.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { SurveyModule } from './survey/survey.module';
       autoSchemaFile: true,
     }),
     SurveyModule,
+    QuestionModule,
   ],
   providers: [AppResolver],
 })
