@@ -4,6 +4,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { AppResolver } from './app.resolver';
 import { SurveyModule } from './survey/survey.module';
 import { QuestionModule } from './question/question.module';
+import { OptionModule } from './option/option.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { QuestionModule } from './question/question.module';
     }),
     SurveyModule,
     QuestionModule,
+    OptionModule,
   ],
   providers: [AppResolver],
 })

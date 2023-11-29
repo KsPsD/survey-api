@@ -28,7 +28,7 @@ export class Option extends BaseEntity {
   @ManyToOne(() => Question, (question) => question.options)
   question: Question;
 
-  @Field(() => [Answer])
+  @Field(() => [Answer], { nullable: true })
   @OneToMany(() => Answer, (answer) => answer.selectedOption)
   answers: Answer[];
 }
