@@ -16,8 +16,8 @@ export class OptionService {
   async create(createOptionInput: CreateOptionInput): Promise<Option> {
     const { questionId, ...optionDetails } = createOptionInput;
 
-    const question = await this.questionRepository.findOneBy({
-      id: questionId,
+    const question = await this.questionRepository.findOne({
+      where: { id: questionId },
     });
     if (!question) {
       throw new NotFoundException(`Question with id ${questionId} not found`);
@@ -32,11 +32,16 @@ export class OptionService {
   }
 
   async findAll(): Promise<Option[]> {
-    return this.optionRepository.find();
+    return this.optionRepository.find({
+      relations: ['answers'],
+    });
   }
 
   async findOne(id: number): Promise<Option> {
-    const option = await this.optionRepository.findOneBy({ id });
+    const option = await this.optionRepository.findOne({
+      where: { id },
+      relations: ['answers'],
+    });
     if (!option) {
       throw new NotFoundException(`option with ID ${id} not found`);
     }
@@ -47,12 +52,12 @@ export class OptionService {
     id: number,
     updateOptionInput: UpdateOptionInput,
   ): Promise<Option> {
-    const option = await this.optionRepository.findOneBy({ id });
+    const option = await this.optionRepository.findOne({ where: { id } });
     if (!option) {
       throw new NotFoundException(`option with ID ${id} not found`);
     }
     await this.optionRepository.update(id, updateOptionInput);
-    return this.optionRepository.findOneBy({ id });
+    return this.optionRepository.findOne({ where: { id } });
   }
 
   async remove(id: number): Promise<boolean> {
