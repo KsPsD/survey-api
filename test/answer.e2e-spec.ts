@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { AppModule } from '../src/app.module';
 import * as request from 'supertest';
 import { GraphQLModule } from '@nestjs/graphql';
 import { OptionModule } from '../src/option/option.module';
@@ -11,18 +10,22 @@ import { Survey } from '../src/survey/survey.entity';
 import { SurveyModule } from '../src/survey/survey.module';
 import { Question } from '../src/question/question.entity';
 import { QuestionModule } from '../src/question/question.module';
+import { Answer } from '../src/answer/answer.entity';
+import { AnswerModule } from '../src/answer/answer.module';
 
 describe('Option (e2e)', () => {
   let app: INestApplication;
   let optionRepository: Repository<Option>;
   let surveyRepository: Repository<Survey>;
   let questionRepository: Repository<Question>;
+  let answerRepository: Repository<Answer>;
   let dataSource: DataSource;
   let surveyId: number;
   let mockSurvey: Survey;
   let mockQuestion: Question;
   let questionId: number;
   let optionId: number;
+  let answerId: number;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -30,6 +33,7 @@ describe('Option (e2e)', () => {
         OptionModule,
         SurveyModule,
         QuestionModule,
+        AnswerModule,
         GraphQLModule.forRoot({
           driver: ApolloDriver,
           autoSchemaFile: true,
@@ -46,6 +50,8 @@ describe('Option (e2e)', () => {
     questionRepository = moduleFixture.get<Repository<Question>>(
       'QUESTION_REPOSITORY',
     );
+    answerRepository =
+      moduleFixture.get<Repository<Answer>>('ANSWER_REPOSITORY');
     await app.init();
   });
 
@@ -72,6 +78,13 @@ describe('Option (e2e)', () => {
     });
     const savedOption = await optionRepository.save(option);
     optionId = savedOption.id;
+
+    const answer = answerRepository.create({
+      question: mockQuestion,
+      selectedOption: savedOption,
+    });
+    const savedAnswer = await answerRepository.save(answer);
+    answerId = savedAnswer.id;
   });
 
   afterAll(async () => {
@@ -80,47 +93,20 @@ describe('Option (e2e)', () => {
   });
 
   describe('GraphQL (POST /graphql)', () => {
-    it('create a option', () => {
-      return request(app.getHttpServer())
+    it('create a answer', async () => {
+      const response = await request(app.getHttpServer())
         .post('/graphql')
         .send({
           query: `
           mutation {
-            createOption(createOptionInput: {
-              content: "Test Option",
-              score: 1,
-              questionId: ${questionId}
+            createAnswer(createAnswerInput: {
+              questionId: ${questionId},
+              selectedOptionId: ${optionId}
             }) {
               id
-              content
             }
           }
           `,
-        })
-        .expect(200)
-        .expect((res) => {
-          expect(res.body.data.createOption).toEqual({
-            id: expect.any(Number),
-            content: 'Test Option',
-          });
-        });
-    });
-
-    it('update a option', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/graphql')
-        .send({
-          query: `
-        mutation {
-          updateOption( id: ${optionId},updateOptionInput: {
-            content: "Updated option content"
-          }) {
-            id
-            content
-            score
-          }
-        }
-      `,
         });
 
       if (response.status !== 200) {
@@ -129,78 +115,117 @@ describe('Option (e2e)', () => {
       }
 
       expect(response.status).toBe(200);
-      expect(response.body.data.updateOption).toEqual({
-        id: optionId,
-        content: 'Updated option content',
-        score: 1,
+      expect(response.body.data.createAnswer).toEqual({
+        id: expect.any(Number),
       });
     });
 
-    it('get a option by id', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/graphql')
-        .send({
-          query: `
-              query {
-                getOption(id: ${optionId}) {
-                  id
-                  content
-                }
-              }
-            `,
-        });
-
-      if (response.status !== 200) {
-        console.error('Unexpected status code:', response.status);
-        console.error('Response body:', response.body);
-      }
-
-      expect(response.status).toBe(200);
-      expect(response.body.data.getOption).toEqual({
-        id: optionId,
-        content: 'Original Content',
-      });
-    });
-
-    it('get all options', () => {
-      return request(app.getHttpServer())
-        .post('/graphql')
-        .send({
-          query: `
-              query {
-                getAllOptions {
-                  id
-                  content
-                }
-              }
-            `,
-        })
-        .expect(200)
-        .expect((res) => {
-          expect(res.body.data.getAllOptions).toEqual(expect.any(Array));
-        });
-    });
-    it('delete a option', async () => {
+    it('update a answer', async () => {
       const option = optionRepository.create({
-        content: 'Original Content',
+        content: 'Update Content',
         score: 1,
         question: mockQuestion,
       });
-      const savedOption = await optionRepository.save(option);
-      const optionId = savedOption.id;
+      const savedUpdateOption = await optionRepository.save(option);
+      const updateOptionId = savedUpdateOption.id;
 
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+          mutation {
+            updateAnswer( id: ${answerId},updateAnswerInput: {
+              selectedOptionId: ${updateOptionId}
+            }) {
+              id
+            }
+          }
+        `,
+        });
+
+      if (response.status !== 200) {
+        console.error('Unexpected status code:', response.status);
+        console.error('Response body:', response.body);
+      }
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.updateAnswer).toEqual({
+        id: answerId,
+      });
+    });
+
+    it('get a answer by id', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+                query {
+                  getAnswer(id: ${answerId}) {
+                    id
+                    question {
+                      id
+                    }
+                    selectedOption {
+                      id
+                    }
+                  }
+                }
+              `,
+        });
+
+      if (response.status !== 200) {
+        console.error('Unexpected status code:', response.status);
+        console.error('Response body:', response.body);
+      }
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.getAnswer).toEqual({
+        id: answerId,
+        question: {
+          id: questionId,
+        },
+        selectedOption: {
+          id: optionId,
+        },
+      });
+    });
+
+    it('get all answers', () => {
       return request(app.getHttpServer())
         .post('/graphql')
         .send({
           query: `
-              mutation {
-                deleteOption(id: ${optionId})
-              }
-            `,
+                query {
+                  getAllAnswers {
+                    id
+                    question {
+                      id
+                    }
+                    selectedOption {
+                      id
+                    }
+                  }
+                }
+              `,
         })
         .expect(200)
         .expect((res) => {
-          expect(res.body.data.deleteOption).toBe(true);
+          expect(res.body.data.getAllAnswers).toEqual(expect.any(Array));
+        });
+    });
+    it('delete a option', async () => {
+      return request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+                mutation {
+                  deleteAnswer(id: ${answerId})
+                }
+              `,
+        })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.data.deleteAnswer).toBe(true);
         });
     });
   });
