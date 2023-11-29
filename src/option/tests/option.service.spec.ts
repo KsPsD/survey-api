@@ -13,12 +13,12 @@ describe('OptionService', () => {
       create: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
-      findOneBy: jest.fn(),
+      findOne: jest.fn(),
       delete: jest.fn(),
       find: jest.fn(),
     };
     mockQuestionRepository = {
-      findOneBy: jest.fn(),
+      findOne: jest.fn(),
     };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -46,7 +46,7 @@ describe('OptionService', () => {
       questionId: mockQuestionId,
     };
 
-    mockQuestionRepository.findOneBy.mockResolvedValue(mockQuestion);
+    mockQuestionRepository.findOne.mockResolvedValue(mockQuestion);
 
     mockOptionRepository.create.mockReturnValue({
       ...optionData,
@@ -59,8 +59,8 @@ describe('OptionService', () => {
 
     const result = await service.create(optionData);
 
-    expect(mockQuestionRepository.findOneBy).toHaveBeenCalledWith({
-      id: mockQuestionId,
+    expect(mockQuestionRepository.findOne).toHaveBeenCalledWith({
+      where: { id: mockQuestionId },
     });
 
     expect(mockOptionRepository.create).toHaveBeenCalledWith({
@@ -86,21 +86,21 @@ describe('OptionService', () => {
     existingOption.id = optionId;
     existingOption.content = 'Original Title';
 
-    mockOptionRepository.findOneBy.mockResolvedValue(existingOption);
+    mockOptionRepository.findOne.mockResolvedValue(existingOption);
     mockOptionRepository.update.mockImplementation(async () => {
       return {
         affected: 1,
       };
     });
-    mockOptionRepository.findOneBy.mockResolvedValue({
+    mockOptionRepository.findOne.mockResolvedValue({
       ...existingOption,
       ...updateData,
     });
 
     const result = await service.update(optionId, { ...updateData });
 
-    expect(mockOptionRepository.findOneBy).toHaveBeenCalledWith({
-      id: optionId,
+    expect(mockOptionRepository.findOne).toHaveBeenCalledWith({
+      where: { id: optionId },
     });
     expect(mockOptionRepository.update).toHaveBeenCalledWith(optionId, {
       ...updateData,
@@ -115,7 +115,7 @@ describe('OptionService', () => {
     existingOption.id = optionId;
     existingOption.content = 'Original content';
 
-    mockOptionRepository.findOneBy.mockResolvedValue(existingOption);
+    mockOptionRepository.findOne.mockResolvedValue(existingOption);
     mockOptionRepository.update.mockImplementation(async () => {
       return {
         affected: 0,
@@ -171,12 +171,13 @@ describe('OptionService', () => {
     expectedOption.id = optionId;
     expectedOption.content = 'Test Option';
 
-    mockOptionRepository.findOneBy.mockResolvedValue(expectedOption);
+    mockOptionRepository.findOne.mockResolvedValue(expectedOption);
 
     const result = await service.findOne(optionId);
 
-    expect(mockOptionRepository.findOneBy).toHaveBeenCalledWith({
-      id: optionId,
+    expect(mockOptionRepository.findOne).toHaveBeenCalledWith({
+      where: { id: optionId },
+      relations: ['answers'],
     });
     expect(result).toEqual(expectedOption);
   });
