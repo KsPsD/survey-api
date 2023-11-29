@@ -3,10 +3,11 @@ import { QuestionService } from './question.service';
 import { QuestionResolver } from './question.resolver';
 import { QuestionRepository } from './question.repository';
 import { DatabaseModule } from '../database/database.module';
+import { SurveyModule } from '../survey/survey.module';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, SurveyModule],
   providers: [QuestionService, QuestionResolver, ...QuestionRepository],
-  exports: [QuestionService],
+  exports: [QuestionService, ...QuestionRepository],
 })
 export class QuestionModule {}
