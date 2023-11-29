@@ -36,7 +36,11 @@ export class QuestionService {
   }
 
   async findOne(id: number): Promise<Question> {
-    const question = await this.questionRepository.findOneBy({ id });
+    const question = await this.questionRepository.findOne({
+      where: { id },
+      relations: ['survey'],
+    });
+    console.log(question);
     if (!question) {
       throw new NotFoundException(`question with ID ${id} not found`);
     }
@@ -47,7 +51,7 @@ export class QuestionService {
     id: number,
     updateQuestionInput: UpdateQuestionInput,
   ): Promise<Question> {
-    const question = await this.questionRepository.findOneBy({ id });
+    const question = await this.questionRepository.findOne({ where: { id } });
     if (!question) {
       throw new NotFoundException(`question with ID ${id} not found`);
     }
