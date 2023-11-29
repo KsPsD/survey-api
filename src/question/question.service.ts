@@ -18,7 +18,9 @@ export class QuestionService {
   ): Promise<Question[] | Question> {
     const { surveyId, ...questionDetails } = createQuestionInput;
 
-    const survey = await this.surveyRepository.findOneBy({ id: surveyId });
+    const survey = await this.surveyRepository.findOne({
+      where: { id: surveyId },
+    });
     if (!survey) {
       throw new NotFoundException(`Survey with id ${surveyId} not found`);
     }
@@ -32,15 +34,16 @@ export class QuestionService {
   }
 
   async findAll(): Promise<Question[]> {
-    return this.questionRepository.find();
+    return this.questionRepository.find({
+      relations: ['survey', 'answers', 'options'],
+    });
   }
 
   async findOne(id: number): Promise<Question> {
     const question = await this.questionRepository.findOne({
       where: { id },
-      relations: ['survey'],
+      relations: ['survey', 'answers', 'options'],
     });
-    console.log(question);
     if (!question) {
       throw new NotFoundException(`question with ID ${id} not found`);
     }
@@ -56,7 +59,7 @@ export class QuestionService {
       throw new NotFoundException(`question with ID ${id} not found`);
     }
     await this.questionRepository.update(id, updateQuestionInput);
-    return this.questionRepository.findOneBy({ id });
+    return this.questionRepository.findOne({ where: { id } });
   }
 
   async remove(id: number): Promise<boolean> {
