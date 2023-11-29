@@ -8,6 +8,6 @@ import { QuestionModule } from '../question/question.module';
 @Module({
   imports: [DatabaseModule, QuestionModule],
   providers: [OptionService, OptionResolver, ...OptionRepository],
-  exports: [OptionService],
+  exports: [OptionService, ...OptionRepository],
 })
 export class OptionModule {}
