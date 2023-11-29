@@ -13,12 +13,12 @@ describe('QuestionService', () => {
       create: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
-      findOneBy: jest.fn(),
+      findOne: jest.fn(),
       delete: jest.fn(),
       find: jest.fn(),
     };
     mockSurveyRepository = {
-      findOneBy: jest.fn(),
+      findOne: jest.fn(),
     };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -47,7 +47,7 @@ describe('QuestionService', () => {
       ...questionData,
       survey: mockSurvey,
     };
-    mockSurveyRepository.findOneBy.mockResolvedValue(mockSurvey);
+    mockSurveyRepository.findOne.mockResolvedValue(mockSurvey);
     mockQuestionRepository.create.mockReturnValue(expectedQuestion);
     mockQuestionRepository.save.mockResolvedValue(expectedQuestion);
 
@@ -68,22 +68,21 @@ describe('QuestionService', () => {
     existingQuestion.id = questionId;
     existingQuestion.content = 'Original Title';
 
-    mockQuestionRepository.findOneBy.mockResolvedValue(existingQuestion);
+    mockQuestionRepository.findOne.mockResolvedValue(existingQuestion);
     mockQuestionRepository.update.mockImplementation(async () => {
       return {
         affected: 1,
       };
     });
-    mockQuestionRepository.findOneBy.mockResolvedValue({
+    mockQuestionRepository.findOne.mockResolvedValue({
       ...existingQuestion,
       ...updateData,
     });
 
     const result = await service.update(questionId, { ...updateData });
-    console.log(result);
 
-    expect(mockQuestionRepository.findOneBy).toHaveBeenCalledWith({
-      id: questionId,
+    expect(mockQuestionRepository.findOne).toHaveBeenCalledWith({
+      where: { id: questionId },
     });
     expect(mockQuestionRepository.update).toHaveBeenCalledWith(questionId, {
       ...updateData,
@@ -93,12 +92,12 @@ describe('QuestionService', () => {
 
   it('failed update a question', async () => {
     const questionId = 1;
-    const updateData = { content: 'Updated Question' };
+    const updateData = { content: 'Updated Question', surveyId: 1 };
     const existingQuestion = new Question();
     existingQuestion.id = questionId;
     existingQuestion.content = 'Original content';
 
-    mockQuestionRepository.findOneBy.mockResolvedValue(existingQuestion);
+    mockQuestionRepository.findOne.mockResolvedValue(existingQuestion);
     mockQuestionRepository.update.mockImplementation(async () => {
       return {
         affected: 0,
@@ -154,12 +153,14 @@ describe('QuestionService', () => {
     expectedQuestion.id = questionId;
     expectedQuestion.content = 'Test Question';
 
-    mockQuestionRepository.findOneBy.mockResolvedValue(expectedQuestion);
+    mockQuestionRepository.findOne.mockResolvedValue(expectedQuestion);
 
     const result = await service.findOne(questionId);
+    console.log(result);
 
-    expect(mockQuestionRepository.findOneBy).toHaveBeenCalledWith({
-      id: questionId,
+    expect(mockQuestionRepository.findOne).toHaveBeenCalledWith({
+      where: { id: questionId },
+      relations: ['survey', 'answers', 'options'],
     });
     expect(result).toEqual(expectedQuestion);
   });
