@@ -6,6 +6,7 @@ import { NotFoundException } from '@nestjs/common/exceptions';
 describe('QuestionService', () => {
   let service: QuestionService;
   let mockQuestionRepository;
+  let mockSurveyRepository;
 
   beforeEach(async () => {
     mockQuestionRepository = {
@@ -16,12 +17,19 @@ describe('QuestionService', () => {
       delete: jest.fn(),
       find: jest.fn(),
     };
+    mockSurveyRepository = {
+      findOneBy: jest.fn(),
+    };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         QuestionService,
         {
           provide: 'QUESTION_REPOSITORY',
           useValue: mockQuestionRepository,
+        },
+        {
+          provide: 'SURVEY_REPOSITORY',
+          useValue: mockSurveyRepository,
         },
       ],
     }).compile();
@@ -32,15 +40,25 @@ describe('QuestionService', () => {
   it('success create a question', async () => {
     const questionData = {
       content: 'Test Question',
+      surveyId: 1,
     };
-    mockQuestionRepository.create.mockReturnValue(questionData);
-    mockQuestionRepository.save.mockResolvedValue(questionData);
+    const mockSurvey = { id: questionData.surveyId, title: 'Test Survey' };
+    const expectedQuestion = {
+      ...questionData,
+      survey: mockSurvey,
+    };
+    mockSurveyRepository.findOneBy.mockResolvedValue(mockSurvey);
+    mockQuestionRepository.create.mockReturnValue(expectedQuestion);
+    mockQuestionRepository.save.mockResolvedValue(expectedQuestion);
 
     const result = await service.create(questionData);
 
-    expect(mockQuestionRepository.create).toHaveBeenCalledWith(questionData);
-    expect(mockQuestionRepository.save).toHaveBeenCalledWith(questionData);
-    expect(result).toEqual(questionData);
+    expect(mockQuestionRepository.create).toHaveBeenCalledWith({
+      content: questionData['content'],
+      survey: mockSurvey,
+    });
+    expect(mockQuestionRepository.save).toHaveBeenCalledWith(expectedQuestion);
+    expect(result).toEqual(expectedQuestion);
   });
 
   it('success update a question', async () => {
