@@ -20,7 +20,7 @@ export class Survey extends BaseEntity {
 
   @Field(() => [Question], { nullable: true })
   @OneToMany(() => Question, (question) => question.survey, {
-    cascade: ['remove'],
+    cascade: true,
   })
   questions: Question[];
 

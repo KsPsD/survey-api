@@ -11,10 +11,12 @@ export class Answer extends BaseEntity {
   id: number;
 
   @Field(() => Question)
-  @ManyToOne(() => Question, (question) => question.answers)
+  @ManyToOne(() => Question, (question) => question.answers, {
+    onDelete: 'CASCADE',
+  })
   question: Question;
 
   @Field(() => Option)
-  @ManyToOne(() => Option, (option) => option.answers)
+  @ManyToOne(() => Option, (option) => option.answers, { onDelete: 'CASCADE' })
   selectedOption: Option;
 }

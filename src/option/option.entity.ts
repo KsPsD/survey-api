@@ -25,10 +25,14 @@ export class Option extends BaseEntity {
   score: number;
 
   @Field(() => Question)
-  @ManyToOne(() => Question, (question) => question.options)
+  @ManyToOne(() => Question, (question) => question.options, {
+    onDelete: 'CASCADE',
+  })
   question: Question;
 
-  @Field(() => [Answer])
-  @OneToMany(() => Answer, (answer) => answer.selectedOption)
+  @Field(() => [Answer], { nullable: true })
+  @OneToMany(() => Answer, (answer) => answer.selectedOption, {
+    cascade: true,
+  })
   answers: Answer[];
 }
