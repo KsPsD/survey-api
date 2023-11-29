@@ -26,11 +26,11 @@ export class Question extends BaseEntity {
   @ManyToOne(() => Survey, (survey) => survey.questions)
   survey: Survey;
 
-  @Field(() => [Option])
+  @Field(() => [Option], { nullable: true })
   @OneToMany(() => Option, (option) => option.question)
   options: Option[];
 
-  @Field(() => [Answer])
+  @Field(() => [Answer], { nullable: true })
   @OneToMany(() => Answer, (answer) => answer.question)
   answers: Answer[];
 }

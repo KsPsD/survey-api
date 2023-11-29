@@ -3,7 +3,7 @@ import { QuestionService } from '../question.service';
 import { Question } from '../question.entity';
 import { NotFoundException } from '@nestjs/common/exceptions';
 
-describe('SurveyService', () => {
+describe('QuestionService', () => {
   let service: QuestionService;
   let mockQuestionRepository;
 
@@ -29,7 +29,7 @@ describe('SurveyService', () => {
     service = module.get<QuestionService>(QuestionService);
   });
 
-  it('success create a survey', async () => {
+  it('success create a question', async () => {
     const questionData = {
       content: 'Test Question',
     };
@@ -45,7 +45,7 @@ describe('SurveyService', () => {
 
   it('success update a question', async () => {
     const questionId = 1;
-    const updateData = { content: 'Updated Survey' };
+    const updateData = { content: 'Updated Question' };
     const existingQuestion = new Question();
     existingQuestion.id = questionId;
     existingQuestion.content = 'Original Title';
@@ -73,7 +73,7 @@ describe('SurveyService', () => {
     expect(result).toEqual({ ...existingQuestion, ...updateData });
   });
 
-  it('failed update a survey', async () => {
+  it('failed update a question', async () => {
     const questionId = 1;
     const updateData = { content: 'Updated Question' };
     const existingQuestion = new Question();
@@ -130,7 +130,7 @@ describe('SurveyService', () => {
     expect(result).toEqual(expectedQuestions);
   });
 
-  it('success find a survey by id', async () => {
+  it('success find a question by id', async () => {
     const questionId = 1;
     const expectedQuestion = new Question();
     expectedQuestion.id = questionId;
