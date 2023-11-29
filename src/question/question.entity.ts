@@ -23,14 +23,20 @@ export class Question extends BaseEntity {
   content: string;
 
   @Field(() => Survey)
-  @ManyToOne(() => Survey, (survey) => survey.questions)
+  @ManyToOne(() => Survey, (survey) => survey.questions, {
+    onDelete: 'CASCADE',
+  })
   survey: Survey;
 
   @Field(() => [Option], { nullable: true })
-  @OneToMany(() => Option, (option) => option.question)
+  @OneToMany(() => Option, (option) => option.question, {
+    cascade: true,
+  })
   options: Option[];
 
   @Field(() => [Answer], { nullable: true })
-  @OneToMany(() => Answer, (answer) => answer.question)
+  @OneToMany(() => Answer, (answer) => answer.question, {
+    cascade: true,
+  })
   answers: Answer[];
 }
