@@ -22,6 +22,7 @@ describe('Option (e2e)', () => {
   let mockSurvey: Survey;
   let mockQuestion: Question;
   let questionId: number;
+  let optionId: number;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -63,6 +64,14 @@ describe('Option (e2e)', () => {
     });
     const savedQuestion = await questionRepository.save(mockQuestion);
     questionId = savedQuestion.id;
+
+    const option = optionRepository.create({
+      content: 'Original Content',
+      score: 1,
+      question: mockQuestion,
+    });
+    const savedOption = await optionRepository.save(option);
+    optionId = savedOption.id;
   });
 
   afterAll(async () => {
@@ -136,13 +145,6 @@ describe('Option (e2e)', () => {
     });
 
     it('get a option by id', async () => {
-      const option = optionRepository.create({
-        content: 'Original Content',
-        score: 1,
-        question: mockQuestion,
-      });
-      const savedOption = await optionRepository.save(option);
-      const optionId = savedOption.id;
       const response = await request(app.getHttpServer())
         .post('/graphql')
         .send({

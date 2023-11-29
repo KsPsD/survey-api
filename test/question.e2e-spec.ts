@@ -17,6 +17,7 @@ describe('Question (e2e)', () => {
   let dataSource: DataSource;
   let surveyId: number;
   let mockSurvey: Survey;
+  let questionId: number;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -49,6 +50,13 @@ describe('Question (e2e)', () => {
     });
     const savedSurvey = await surveyRepository.save(mockSurvey);
     surveyId = savedSurvey.id;
+
+    const question = questionRepository.create({
+      content: 'Original Content',
+      survey: mockSurvey,
+    });
+    const savedQuestion = await questionRepository.save(question);
+    questionId = savedQuestion.id;
   });
 
   afterAll(async () => {
@@ -83,13 +91,6 @@ describe('Question (e2e)', () => {
     });
 
     it('update a question', async () => {
-      const question = questionRepository.create({
-        content: 'Original Content',
-        survey: mockSurvey,
-      });
-      const savedQuestion = await questionRepository.save(question);
-      const questionId = savedQuestion.id;
-
       const response = await request(app.getHttpServer())
         .post('/graphql')
         .send({
@@ -118,12 +119,6 @@ describe('Question (e2e)', () => {
     });
 
     it('get a question by id', async () => {
-      const question = questionRepository.create({
-        content: 'Original Content',
-        survey: mockSurvey,
-      });
-      const savedQuestion = await questionRepository.save(question);
-      const questionId = savedQuestion.id;
       const response = await request(app.getHttpServer())
         .post('/graphql')
         .send({
@@ -181,13 +176,6 @@ describe('Question (e2e)', () => {
         });
     });
     it('delete a question', async () => {
-      const question = questionRepository.create({
-        content: 'Original Content',
-        survey: mockSurvey,
-      });
-      const savedQuestion = await questionRepository.save(question);
-      const questionId = savedQuestion.id;
-
       return request(app.getHttpServer())
         .post('/graphql')
         .send({

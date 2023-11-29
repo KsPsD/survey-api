@@ -12,6 +12,7 @@ describe('App (e2e)', () => {
   let app: INestApplication;
   let surveyRepository: Repository<Survey>;
   let dataSource: DataSource;
+  let testSurveyId: number;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -34,10 +35,13 @@ describe('App (e2e)', () => {
 
   let firstSurveyId: number;
   beforeEach(async () => {
-    const surveys = await surveyRepository.find();
-    if (surveys.length !== 0) {
-      firstSurveyId = surveys[0].id;
-    }
+    const surveys = surveyRepository.create({
+      title: 'Test Survey',
+      description: 'Description of Test Survey',
+      isCompleted: false,
+    });
+    const savedSurvey = await surveyRepository.save(surveys);
+    testSurveyId = savedSurvey.id;
   });
 
   afterAll(async () => {
@@ -82,7 +86,7 @@ describe('App (e2e)', () => {
         .send({
           query: `
               mutation {
-                updateSurvey(id: ${firstSurveyId}, updateSurveyInput: {
+                updateSurvey(id: ${testSurveyId}, updateSurveyInput: {
                   title: "Updated Survey"
                 }) {
                   id
@@ -96,7 +100,7 @@ describe('App (e2e)', () => {
         .expect(200)
         .expect((res) => {
           expect(res.body.data.updateSurvey).toEqual({
-            id: firstSurveyId,
+            id: testSurveyId,
             title: 'Updated Survey',
             description: expect.any(String),
             isCompleted: expect.any(Boolean),
@@ -131,7 +135,7 @@ describe('App (e2e)', () => {
         .send({
           query: `
               query {
-                getSurvey(id: ${firstSurveyId}) {
+                getSurvey(id: ${testSurveyId}) {
                   id
                   title
                   description
@@ -143,7 +147,7 @@ describe('App (e2e)', () => {
         .expect(200)
         .expect((res) => {
           expect(res.body.data.getSurvey).toEqual({
-            id: firstSurveyId,
+            id: testSurveyId,
             title: expect.any(String),
             description: expect.any(String),
             isCompleted: expect.any(Boolean),
@@ -151,20 +155,20 @@ describe('App (e2e)', () => {
         });
     });
 
-    // it('delete a survey', () => {
-    //   return request(app.getHttpServer())
-    //     .post('/graphql')
-    //     .send({
-    //       query: `
-    //           mutation {
-    //             deleteSurvey(id: ${firstSurveyId})
-    //           }
-    //         `,
-    //     })
-    //     .expect(200)
-    //     .expect((res) => {
-    //       expect(res.body.data.deleteSurvey).toBe(true);
-    //     });
-    // });
+    it('delete a survey', () => {
+      return request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+              mutation {
+                deleteSurvey(id: ${testSurveyId})
+              }
+            `,
+        })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.data.deleteSurvey).toBe(true);
+        });
+    });
   });
 });
