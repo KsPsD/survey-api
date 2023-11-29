@@ -2,18 +2,32 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Question } from './question.entity';
 import { CreateQuestionInput, UpdateQuestionInput } from './dto/question.input';
+import { Survey } from '../survey/survey.entity';
 
 @Injectable()
 export class QuestionService {
   constructor(
     @Inject('QUESTION_REPOSITORY')
     private questionRepository: Repository<Question>,
+    @Inject('SURVEY_REPOSITORY')
+    private surveyRepository: Repository<Survey>,
   ) {}
 
   async create(
     createQuestionInput: CreateQuestionInput,
   ): Promise<Question[] | Question> {
-    const question = this.questionRepository.create(createQuestionInput);
+    const { surveyId, ...questionDetails } = createQuestionInput;
+
+    const survey = await this.surveyRepository.findOneBy({ id: surveyId });
+    if (!survey) {
+      throw new NotFoundException(`Survey with id ${surveyId} not found`);
+    }
+
+    const question = this.questionRepository.create({
+      ...questionDetails,
+      survey,
+    });
+
     return this.questionRepository.save(question);
   }
 
