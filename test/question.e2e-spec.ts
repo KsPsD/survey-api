@@ -1,13 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { AppModule } from '../src/app.module';
 import * as request from 'supertest';
 import { GraphQLModule } from '@nestjs/graphql';
 import { QuestionModule } from '../src/question/question.module';
 import { ApolloDriver } from '@nestjs/apollo';
 import { DataSource, Repository } from 'typeorm';
 import { Question } from '../src/question/question.entity';
-import { Survey } from '../src/survey/survey.entity';
+import { Survey, SurveyQuestion } from '../src/survey/survey.entity';
 import { SurveyModule } from '../src/survey/survey.module';
 
 describe('Question (e2e)', () => {
@@ -15,9 +14,11 @@ describe('Question (e2e)', () => {
   let questionRepository: Repository<Question>;
   let surveyRepository: Repository<Survey>;
   let dataSource: DataSource;
-  let surveyId: number;
+  let surveyIds: number[];
   let mockSurvey: Survey;
   let questionId: number;
+  let surveyQuestionRepository: Repository<SurveyQuestion>;
+  let surveyQuestionId: number;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -38,7 +39,9 @@ describe('Question (e2e)', () => {
     );
     surveyRepository =
       moduleFixture.get<Repository<Survey>>('SURVEY_REPOSITORY');
-
+    surveyQuestionRepository = moduleFixture.get<Repository<SurveyQuestion>>(
+      'SURVEY_QUESTION_REPOSITORY',
+    );
     await app.init();
   });
 
@@ -48,15 +51,27 @@ describe('Question (e2e)', () => {
       description: 'Description of Test Survey',
       isCompleted: false,
     });
-    const savedSurvey = await surveyRepository.save(mockSurvey);
-    surveyId = savedSurvey.id;
-
     const question = questionRepository.create({
-      content: 'Original Content',
-      survey: mockSurvey,
+      content: 'Test Question',
     });
+    const mockSurveyQuestion = surveyQuestionRepository.create({
+      survey: mockSurvey,
+      question: question,
+    });
+
+    const savedSurveyQuestion =
+      await surveyQuestionRepository.save(mockSurveyQuestion);
+
+    mockSurvey.surveyQuestions = [savedSurveyQuestion];
+    question.surveyQuestions = [savedSurveyQuestion];
+
     const savedQuestion = await questionRepository.save(question);
+
+    const savedSurvey = await surveyRepository.save(mockSurvey);
+
     questionId = savedQuestion.id;
+    surveyIds = [savedSurvey.id];
+    surveyQuestionId = savedSurveyQuestion.id;
   });
 
   afterAll(async () => {
@@ -73,7 +88,7 @@ describe('Question (e2e)', () => {
           mutation {
             createQuestion(createQuestionInput: {
               content: "Test Question",
-              surveyId: ${surveyId}
+              surveyIds: ${surveyIds}
             }) {
               id
               content
@@ -127,11 +142,8 @@ describe('Question (e2e)', () => {
                 getQuestion(id: ${questionId}) {
                   id
                   content
-                  survey{
+                  surveyQuestions{
                     id
-                    title
-                    description
-                    isCompleted
                   }
 
                 }
@@ -147,13 +159,12 @@ describe('Question (e2e)', () => {
       expect(response.status).toBe(200);
       expect(response.body.data.getQuestion).toEqual({
         id: questionId,
-        content: 'Original Content',
-        survey: {
-          description: 'Description of Test Survey',
-          isCompleted: false,
-          title: 'Test Survey',
-          id: surveyId,
-        },
+        content: 'Test Question',
+        surveyQuestions: [
+          {
+            id: surveyQuestionId,
+          },
+        ],
       });
     });
 

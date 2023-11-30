@@ -6,7 +6,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { SurveyModule } from '../src/survey/survey.module';
 import { ApolloDriver } from '@nestjs/apollo';
 import { DataSource, Repository } from 'typeorm';
-import { Survey } from '../src/survey/survey.entity';
+import { Survey, SurveyQuestion } from '../src/survey/survey.entity';
 import { OptionModule } from '../src/option/option.module';
 import { QuestionModule } from '../src/question/question.module';
 import { Option } from '../src/option/option.entity';
@@ -19,6 +19,7 @@ describe('App (e2e)', () => {
   let testSurveyId: number;
   let optionRepository: Repository<Option>;
   let questionRepository: Repository<Question>;
+  let surveyQuestionRepository: Repository<SurveyQuestion>;
   let mockSurvey: Survey;
   let mockQuestion: Question;
   let mockOption: Option;
@@ -49,6 +50,9 @@ describe('App (e2e)', () => {
     questionRepository = moduleFixture.get<Repository<Question>>(
       'QUESTION_REPOSITORY',
     );
+    surveyQuestionRepository = moduleFixture.get<Repository<SurveyQuestion>>(
+      'SURVEY_QUESTION_REPOSITORY',
+    );
 
     await app.init();
   });
@@ -59,14 +63,22 @@ describe('App (e2e)', () => {
       description: 'Description of Test Survey',
       isCompleted: false,
     });
-    const savedSurvey = await surveyRepository.save(mockSurvey);
-    testSurveyId = savedSurvey.id;
+
     mockQuestion = questionRepository.create({
       content: 'Test Question',
-      survey: mockSurvey,
+      surveyQuestions: [{ survey: mockSurvey }],
     });
+    const mockSurveyQuestion = surveyQuestionRepository.create({
+      survey: mockSurvey,
+      question: mockQuestion,
+    });
+
+    mockSurvey.surveyQuestions = [mockSurveyQuestion];
+
+    const savedSurvey = await surveyRepository.save(mockSurvey);
     const savedQuestion = await questionRepository.save(mockQuestion);
     questionId = savedQuestion.id;
+    testSurveyId = savedSurvey.id;
 
     mockOption = optionRepository.create({
       content: 'Original Content',
@@ -217,7 +229,7 @@ describe('App (e2e)', () => {
                     selectedOptionId: ${optionId}
                   }
                 ]
-              }) 
+              })
             }
           `,
         });
@@ -246,7 +258,7 @@ describe('App (e2e)', () => {
                     selectedOptionId: ${invalidOptionId}
                   }
                 ]
-              }) 
+              })
             }
           `,
         });
