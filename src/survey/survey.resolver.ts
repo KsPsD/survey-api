@@ -1,7 +1,11 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { SurveyService } from './survey.service';
 import { Survey } from './survey.entity';
-import { CreateSurveyInput, UpdateSurveyInput } from './dto/survey.input';
+import {
+  CompleteSurveyInput,
+  CreateSurveyInput,
+  UpdateSurveyInput,
+} from './dto/survey.input';
 
 @Resolver((of) => Survey)
 export class SurveyResolver {
@@ -36,5 +40,13 @@ export class SurveyResolver {
   @Mutation((returns) => Boolean)
   async deleteSurvey(@Args('id') id: number) {
     return this.surveyService.remove(id);
+  }
+
+  @Mutation((returns) => Boolean)
+  async completeSurvey(
+    @Args('id', { type: () => Int }) id: number,
+    @Args('completeSurveyInput') completeSurveyInput: CompleteSurveyInput,
+  ): Promise<Boolean> {
+    return this.surveyService.completeSurvey(id, completeSurveyInput);
   }
 }
