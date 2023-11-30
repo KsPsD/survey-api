@@ -2,11 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { QuestionService } from '../question.service';
 import { Question } from '../question.entity';
 import { NotFoundException } from '@nestjs/common/exceptions';
+import { In } from 'typeorm';
 
 describe('QuestionService', () => {
   let service: QuestionService;
   let mockQuestionRepository;
   let mockSurveyRepository;
+  let mockSurveyQuestionRepository;
 
   beforeEach(async () => {
     mockQuestionRepository = {
@@ -19,6 +21,12 @@ describe('QuestionService', () => {
     };
     mockSurveyRepository = {
       findOne: jest.fn(),
+      find: jest.fn(),
+    };
+    mockSurveyQuestionRepository = {
+      create: jest.fn(),
+      save: jest.fn(),
+      delete: jest.fn(),
     };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -31,6 +39,10 @@ describe('QuestionService', () => {
           provide: 'SURVEY_REPOSITORY',
           useValue: mockSurveyRepository,
         },
+        {
+          provide: 'SURVEY_QUESTION_REPOSITORY',
+          useValue: mockSurveyQuestionRepository,
+        },
       ],
     }).compile();
 
@@ -40,24 +52,33 @@ describe('QuestionService', () => {
   it('success create a question', async () => {
     const questionData = {
       content: 'Test Question',
-      surveyId: 1,
+      surveyIds: [1],
     };
-    const mockSurvey = { id: questionData.surveyId, title: 'Test Survey' };
+    const mockSurveys = [
+      { id: questionData.surveyIds[0], title: 'Test Survey' },
+    ];
     const expectedQuestion = {
-      ...questionData,
-      survey: mockSurvey,
+      id: 1,
+      content: questionData.content,
     };
-    mockSurveyRepository.findOne.mockResolvedValue(mockSurvey);
     mockQuestionRepository.create.mockReturnValue(expectedQuestion);
     mockQuestionRepository.save.mockResolvedValue(expectedQuestion);
 
+    mockSurveyRepository.find.mockResolvedValue(mockSurveys);
+    mockSurveyQuestionRepository.create.mockImplementation((data) => data);
+
     const result = await service.create(questionData);
 
+    expect(mockSurveyRepository.find).toHaveBeenCalledWith({
+      where: { id: In(questionData.surveyIds) },
+    });
     expect(mockQuestionRepository.create).toHaveBeenCalledWith({
-      content: questionData['content'],
-      survey: mockSurvey,
+      content: questionData.content,
     });
     expect(mockQuestionRepository.save).toHaveBeenCalledWith(expectedQuestion);
+    expect(mockSurveyQuestionRepository.create).toHaveBeenCalledTimes(
+      questionData.surveyIds.length,
+    );
     expect(result).toEqual(expectedQuestion);
   });
 
@@ -114,11 +135,16 @@ describe('QuestionService', () => {
 
   it('success remove a question', async () => {
     const questionId = 1;
+    const deletedsSurveyQuestions = { question: { id: questionId } };
     mockQuestionRepository.delete.mockResolvedValue({ affected: 1 });
+    mockSurveyQuestionRepository.delete.mockResolvedValue({ affected: 1 });
 
     const result = await service.remove(questionId);
 
     expect(mockQuestionRepository.delete).toHaveBeenCalledWith(questionId);
+    expect(mockSurveyQuestionRepository.delete).toHaveBeenCalledWith(
+      deletedsSurveyQuestions,
+    );
     expect(result).toBeTruthy();
   });
 
@@ -160,7 +186,7 @@ describe('QuestionService', () => {
 
     expect(mockQuestionRepository.findOne).toHaveBeenCalledWith({
       where: { id: questionId },
-      relations: ['survey', 'answers', 'options'],
+      relations: ['surveyQuestions', 'answers', 'options'],
     });
     expect(result).toEqual(expectedQuestion);
   });
