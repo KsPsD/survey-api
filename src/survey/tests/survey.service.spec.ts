@@ -11,6 +11,9 @@ describe('SurveyService', () => {
   let mockSurveyRepository;
   let mockDataSource;
   let managerMock;
+  let mockAnswerRepository;
+  let mockSurveyQuestionRepository;
+  let mockQuestionRepository;
 
   beforeEach(async () => {
     mockSurveyRepository = {
@@ -27,6 +30,18 @@ describe('SurveyService', () => {
       find: jest.fn(),
       save: jest.fn(),
     };
+    mockSurveyQuestionRepository = {
+      find: jest.fn(),
+      delete: jest.fn(),
+      create: jest.fn(),
+      save: jest.fn(),
+    };
+    mockQuestionRepository = {
+      find: jest.fn(),
+    };
+    mockAnswerRepository = {
+      find: jest.fn(),
+    };
     mockDataSource = {
       transaction: jest.fn().mockImplementation((cb) => cb(managerMock)),
     };
@@ -38,8 +53,20 @@ describe('SurveyService', () => {
           useValue: mockSurveyRepository,
         },
         {
+          provide: 'QUESTION_REPOSITORY',
+          useValue: mockQuestionRepository,
+        },
+        {
+          provide: 'ANSWER_REPOSITORY',
+          useValue: mockAnswerRepository,
+        },
+        {
           provide: 'DATA_SOURCE',
           useValue: mockDataSource,
+        },
+        {
+          provide: 'SURVEY_QUESTION_REPOSITORY',
+          useValue: mockSurveyQuestionRepository,
         },
       ],
     }).compile();
@@ -47,20 +74,44 @@ describe('SurveyService', () => {
     service = module.get<SurveyService>(SurveyService);
   });
 
-  it('success create a survey', async () => {
+  it('success create a survey with questions', async () => {
     const surveyData = {
       title: 'Test Survey',
       description: 'Test Description',
       isCompleted: false,
+      questionIds: [1, 2],
     };
-    mockSurveyRepository.create.mockReturnValue(surveyData);
-    mockSurveyRepository.save.mockResolvedValue(surveyData);
+    const mockSurveys = {
+      ...surveyData,
+      id: 1,
+    };
+    const mockQuestions = [
+      { id: 1, content: 'Test Question 1' },
+      { id: 2, content: 'Test Question 2' },
+    ];
+
+    mockSurveyRepository.create.mockReturnValue(mockSurveys);
+    mockSurveyRepository.save.mockResolvedValue(mockSurveys);
+    mockQuestionRepository.find.mockResolvedValue(mockQuestions);
+
+    mockSurveyQuestionRepository.create.mockImplementation((data) => data);
+    mockSurveyQuestionRepository.save.mockResolvedValue([]);
 
     const result = await service.create(surveyData);
 
-    expect(mockSurveyRepository.create).toHaveBeenCalledWith(surveyData);
-    expect(mockSurveyRepository.save).toHaveBeenCalledWith(surveyData);
-    expect(result).toEqual(surveyData);
+    expect(mockSurveyRepository.create).toHaveBeenCalledWith({
+      title: surveyData.title,
+      description: surveyData.description,
+      isCompleted: surveyData.isCompleted,
+    });
+    expect(mockSurveyRepository.save).toHaveBeenCalledWith(mockSurveys);
+    expect(mockQuestionRepository.find).toHaveBeenCalledWith({
+      where: { id: In(surveyData.questionIds) },
+    });
+    expect(mockSurveyQuestionRepository.create).toHaveBeenCalledTimes(
+      surveyData.questionIds.length,
+    );
+    expect(result).toEqual(mockSurveys);
   });
 
   it('success update a survey', async () => {
@@ -117,10 +168,20 @@ describe('SurveyService', () => {
   it('success remove a survey', async () => {
     const surveyId = 1;
     mockSurveyRepository.delete.mockResolvedValue({ affected: 1 });
+    const deletedSurveyQuestions = { survey: { id: surveyId } };
+    mockSurveyQuestionRepository.delete.mockResolvedValue({
+      affected: 1,
+    });
+    mockSurveyQuestionRepository.delete.mockResolvedValue({
+      affected: 1,
+    });
 
     const result = await service.remove(surveyId);
 
     expect(mockSurveyRepository.delete).toHaveBeenCalledWith(surveyId);
+    expect(mockSurveyQuestionRepository.delete).toHaveBeenCalledWith(
+      deletedSurveyQuestions,
+    );
     expect(result).toBeTruthy();
   });
 
@@ -214,5 +275,49 @@ describe('SurveyService', () => {
     expect(managerMock.findOne).toHaveBeenCalledWith(Survey, {
       where: { id: surveyId },
     });
+  });
+
+  it('calculate the total score of a survey', async () => {
+    const surveyId = 1;
+    const mockSurveyQuestions = [
+      { question: { id: 1 } },
+      { question: { id: 2 } },
+    ];
+    const mockAnswersForEachQuestion = {
+      1: [{ selectedOption: { score: 5 } }],
+      2: [{ selectedOption: { score: 10 } }],
+    };
+
+    mockSurveyQuestionRepository.find.mockResolvedValue(mockSurveyQuestions);
+    mockAnswerRepository.find.mockImplementation(
+      ({
+        where: {
+          question: { id },
+        },
+      }) => mockAnswersForEachQuestion[id],
+    );
+    const totalScore = await service.calculateTotalScore(surveyId);
+
+    expect(mockSurveyQuestionRepository.find).toHaveBeenCalledWith({
+      where: { survey: { id: surveyId } },
+      relations: ['question'],
+    });
+    expect(mockAnswerRepository.find).toHaveBeenCalledTimes(
+      mockSurveyQuestions.length,
+    );
+    expect(totalScore).toEqual(15);
+  });
+
+  it('return zero if no survey questions are found', async () => {
+    const surveyId = 1;
+    mockSurveyQuestionRepository.find.mockResolvedValue([]);
+
+    const totalScore = await service.calculateTotalScore(surveyId);
+
+    expect(mockSurveyQuestionRepository.find).toHaveBeenCalledWith({
+      where: { survey: { id: surveyId } },
+      relations: ['question'],
+    });
+    expect(totalScore).toEqual(0);
   });
 });

@@ -182,7 +182,6 @@ describe('QuestionService', () => {
     mockQuestionRepository.findOne.mockResolvedValue(expectedQuestion);
 
     const result = await service.findOne(questionId);
-    console.log(result);
 
     expect(mockQuestionRepository.findOne).toHaveBeenCalledWith({
       where: { id: questionId },
