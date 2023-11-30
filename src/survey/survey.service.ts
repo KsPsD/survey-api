@@ -77,6 +77,8 @@ export class SurveyService {
   }
 
   async remove(id: number): Promise<boolean> {
+    await this.surveyQuestionRepository.delete({ survey: { id } });
+
     const result = await this.surveyRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Survey with ID ${id} not found`);
@@ -133,5 +135,31 @@ export class SurveyService {
 
   async findCompletedSurveys(): Promise<Survey[]> {
     return this.surveyRepository.find({ where: { isCompleted: true } });
+  }
+
+  async calculateTotalScore(surveyId: number): Promise<number> {
+    let totalScore = 0;
+
+    const surveyQuestions = await this.surveyQuestionRepository.find({
+      where: { survey: { id: surveyId } },
+      relations: ['question'],
+    });
+
+    if (!surveyQuestions.length) {
+      return totalScore;
+    }
+
+    for (const surveyQuestion of surveyQuestions) {
+      const answers = await this.answerRepository.find({
+        where: { question: { id: surveyQuestion.question.id } },
+        relations: ['selectedOption'],
+      });
+
+      for (const answer of answers) {
+        totalScore += answer.selectedOption ? answer.selectedOption.score : 0;
+      }
+    }
+
+    return totalScore;
   }
 }

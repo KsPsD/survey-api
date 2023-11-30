@@ -57,4 +57,9 @@ export class SurveyResolver {
   async getCompletedSurveys() {
     return this.surveyService.findCompletedSurveys();
   }
+
+  @Query(() => Int)
+  async getSurveyTotalScore(@Args('id', { type: () => Int }) id: number) {
+    return this.surveyService.calculateTotalScore(id);
+  }
 }
