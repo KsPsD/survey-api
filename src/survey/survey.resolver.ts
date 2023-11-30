@@ -52,4 +52,9 @@ export class SurveyResolver {
   ): Promise<Boolean> {
     return this.surveyService.completeSurvey(id, completeSurveyInput);
   }
+
+  @Query(() => [Survey])
+  async getCompletedSurveys() {
+    return this.surveyService.findCompletedSurveys();
+  }
 }

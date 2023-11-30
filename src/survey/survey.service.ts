@@ -104,4 +104,8 @@ export class SurveyService {
     this.logger.log(`Completed survey with ID ${id}`);
     return isSuccess;
   }
+
+  async findCompletedSurveys(): Promise<Survey[]> {
+    return this.surveyRepository.find({ where: { isCompleted: true } });
+  }
 }
