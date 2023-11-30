@@ -7,16 +7,29 @@ import { SurveyModule } from '../src/survey/survey.module';
 import { ApolloDriver } from '@nestjs/apollo';
 import { DataSource, Repository } from 'typeorm';
 import { Survey } from '../src/survey/survey.entity';
+import { OptionModule } from '../src/option/option.module';
+import { QuestionModule } from '../src/question/question.module';
+import { Option } from '../src/option/option.entity';
+import { Question } from '../src/question/question.entity';
 
 describe('App (e2e)', () => {
   let app: INestApplication;
   let surveyRepository: Repository<Survey>;
   let dataSource: DataSource;
   let testSurveyId: number;
+  let optionRepository: Repository<Option>;
+  let questionRepository: Repository<Question>;
+  let mockSurvey: Survey;
+  let mockQuestion: Question;
+  let mockOption: Option;
+  let questionId: number;
+  let optionId: number;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
+        OptionModule,
+        QuestionModule,
         SurveyModule,
         GraphQLModule.forRoot({
           driver: ApolloDriver,
@@ -29,23 +42,44 @@ describe('App (e2e)', () => {
     dataSource = moduleFixture.get<DataSource>('DATA_SOURCE');
     surveyRepository =
       moduleFixture.get<Repository<Survey>>('SURVEY_REPOSITORY');
+    optionRepository =
+      moduleFixture.get<Repository<Option>>('OPTION_REPOSITORY');
+    surveyRepository =
+      moduleFixture.get<Repository<Survey>>('SURVEY_REPOSITORY');
+    questionRepository = moduleFixture.get<Repository<Question>>(
+      'QUESTION_REPOSITORY',
+    );
 
     await app.init();
   });
 
-  let firstSurveyId: number;
   beforeEach(async () => {
-    const surveys = surveyRepository.create({
+    mockSurvey = surveyRepository.create({
       title: 'Test Survey',
       description: 'Description of Test Survey',
       isCompleted: false,
     });
-    const savedSurvey = await surveyRepository.save(surveys);
+    const savedSurvey = await surveyRepository.save(mockSurvey);
     testSurveyId = savedSurvey.id;
+    mockQuestion = questionRepository.create({
+      content: 'Test Question',
+      survey: mockSurvey,
+    });
+    const savedQuestion = await questionRepository.save(mockQuestion);
+    questionId = savedQuestion.id;
+
+    mockOption = optionRepository.create({
+      content: 'Original Content',
+      score: 1,
+      question: mockQuestion,
+    });
+    const savedOption = await optionRepository.save(mockOption);
+    optionId = savedOption.id;
   });
 
   afterAll(async () => {
     await app.close();
+
     await dataSource.destroy();
   });
 
@@ -169,6 +203,61 @@ describe('App (e2e)', () => {
         .expect((res) => {
           expect(res.body.data.deleteSurvey).toBe(true);
         });
+    });
+    it('complete a survey', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+            mutation {
+              completeSurvey(id: ${testSurveyId}, completeSurveyInput: {
+                answers: [
+                  {
+                    questionId: ${questionId},
+                    selectedOptionId: ${optionId}
+                  }
+                ]
+              }) 
+            }
+          `,
+        });
+
+      if (response.status !== 200) {
+        console.error('Unexpected status code:', response.status);
+        console.error('Response body:', response.body);
+      }
+      expect(response.status).toBe(200);
+      expect(response.body.data.completeSurvey).toBe(true);
+    });
+
+    it('should rollback transaction on failure', async () => {
+      const invalidQuestionId = 999;
+      const invalidOptionId = 999;
+
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+            mutation {
+              completeSurvey(id: ${testSurveyId}, completeSurveyInput: {
+                answers: [
+                  {
+                    questionId: ${invalidQuestionId},
+                    selectedOptionId: ${invalidOptionId}
+                  }
+                ]
+              }) 
+            }
+          `,
+        });
+
+      const error = response.body.errors[0];
+      expect(error.message).toBeDefined();
+      expect(error.extensions.code).toBe('NOT_FOUND');
+      expect(error.extensions.httpStatusCode).toBe(404);
+
+      const survey = await surveyRepository.findOneBy({ id: testSurveyId });
+      expect(survey.isCompleted).toBe(false);
     });
   });
 });
