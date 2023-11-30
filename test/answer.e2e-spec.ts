@@ -6,7 +6,7 @@ import { OptionModule } from '../src/option/option.module';
 import { ApolloDriver } from '@nestjs/apollo';
 import { DataSource, Repository } from 'typeorm';
 import { Option } from '../src/option/option.entity';
-import { Survey } from '../src/survey/survey.entity';
+import { Survey, SurveyQuestion } from '../src/survey/survey.entity';
 import { SurveyModule } from '../src/survey/survey.module';
 import { Question } from '../src/question/question.entity';
 import { QuestionModule } from '../src/question/question.module';
@@ -26,6 +26,7 @@ describe('Option (e2e)', () => {
   let questionId: number;
   let optionId: number;
   let answerId: number;
+  let surveyQuestionRepository: Repository<SurveyQuestion>;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -52,6 +53,9 @@ describe('Option (e2e)', () => {
     );
     answerRepository =
       moduleFixture.get<Repository<Answer>>('ANSWER_REPOSITORY');
+    surveyQuestionRepository = moduleFixture.get<Repository<SurveyQuestion>>(
+      'SURVEY_QUESTION_REPOSITORY',
+    );
     await app.init();
   });
 
@@ -61,14 +65,24 @@ describe('Option (e2e)', () => {
       description: 'Description of Test Survey',
       isCompleted: false,
     });
-    const savedSurvey = await surveyRepository.save(mockSurvey);
-    surveyId = savedSurvey.id;
-
     mockQuestion = questionRepository.create({
       content: 'Test Question',
-      survey: mockSurvey,
     });
+    const mockSurveyQuestion = surveyQuestionRepository.create({
+      survey: mockSurvey,
+      question: mockQuestion,
+    });
+
+    const savedSurveyQuestion =
+      await surveyQuestionRepository.save(mockSurveyQuestion);
+
+    mockSurvey.surveyQuestions = [savedSurveyQuestion];
+    mockQuestion.surveyQuestions = [savedSurveyQuestion];
+
+    const savedSurvey = await surveyRepository.save(mockSurvey);
     const savedQuestion = await questionRepository.save(mockQuestion);
+
+    surveyId = savedSurvey.id;
     questionId = savedQuestion.id;
 
     const option = optionRepository.create({

@@ -5,18 +5,33 @@ import * as request from 'supertest';
 import { GraphQLModule } from '@nestjs/graphql';
 import { SurveyModule } from '../src/survey/survey.module';
 import { ApolloDriver } from '@nestjs/apollo';
-import { DataSource, Repository } from 'typeorm';
-import { Survey } from '../src/survey/survey.entity';
+import { DataSource, EntityManager, Repository } from 'typeorm';
+import { Survey, SurveyQuestion } from '../src/survey/survey.entity';
+import { OptionModule } from '../src/option/option.module';
+import { QuestionModule } from '../src/question/question.module';
+import { Option } from '../src/option/option.entity';
+import { Question } from '../src/question/question.entity';
+import { DatabaseModule } from '../src/database/database.module';
 
 describe('App (e2e)', () => {
   let app: INestApplication;
   let surveyRepository: Repository<Survey>;
   let dataSource: DataSource;
   let testSurveyId: number;
+  let optionRepository: Repository<Option>;
+  let questionRepository: Repository<Question>;
+  let surveyQuestionRepository: Repository<SurveyQuestion>;
+  let mockSurvey: Survey;
+  let mockQuestion: Question;
+  let mockOption: Option;
+  let questionId: number;
+  let optionId: number;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
+        OptionModule,
+        QuestionModule,
         SurveyModule,
         GraphQLModule.forRoot({
           driver: ApolloDriver,
@@ -26,26 +41,56 @@ describe('App (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    await app.init();
+
     dataSource = moduleFixture.get<DataSource>('DATA_SOURCE');
     surveyRepository =
       moduleFixture.get<Repository<Survey>>('SURVEY_REPOSITORY');
-
-    await app.init();
+    optionRepository =
+      moduleFixture.get<Repository<Option>>('OPTION_REPOSITORY');
+    questionRepository = moduleFixture.get<Repository<Question>>(
+      'QUESTION_REPOSITORY',
+    );
+    surveyQuestionRepository = moduleFixture.get<Repository<SurveyQuestion>>(
+      'SURVEY_QUESTION_REPOSITORY',
+    );
   });
 
-  let firstSurveyId: number;
   beforeEach(async () => {
-    const surveys = surveyRepository.create({
+    mockSurvey = surveyRepository.create({
       title: 'Test Survey',
       description: 'Description of Test Survey',
       isCompleted: false,
     });
-    const savedSurvey = await surveyRepository.save(surveys);
+
+    mockQuestion = questionRepository.create({
+      content: 'Test Question',
+      surveyQuestions: [{ survey: mockSurvey }],
+    });
+    const mockSurveyQuestion = surveyQuestionRepository.create({
+      survey: mockSurvey,
+      question: mockQuestion,
+    });
+
+    mockSurvey.surveyQuestions = [mockSurveyQuestion];
+
+    const savedSurvey = await surveyRepository.save(mockSurvey);
+    const savedQuestion = await questionRepository.save(mockQuestion);
+    questionId = savedQuestion.id;
     testSurveyId = savedSurvey.id;
+
+    mockOption = optionRepository.create({
+      content: 'Original Content',
+      score: 1,
+      question: mockQuestion,
+    });
+    const savedOption = await optionRepository.save(mockOption);
+    optionId = savedOption.id;
   });
 
   afterAll(async () => {
     await app.close();
+
     await dataSource.destroy();
   });
 
@@ -169,6 +214,166 @@ describe('App (e2e)', () => {
         .expect((res) => {
           expect(res.body.data.deleteSurvey).toBe(true);
         });
+    });
+    it('complete a survey', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+            mutation {
+              completeSurvey(id: ${testSurveyId}, completeSurveyInput: {
+                answers: [
+                  {
+                    questionId: ${questionId},
+                    selectedOptionId: ${optionId}
+                  }
+                ]
+              })
+            }
+          `,
+        });
+
+      if (response.status !== 200) {
+        console.error('Unexpected status code:', response.status);
+        console.error('Response body:', response.body);
+      }
+      expect(response.status).toBe(200);
+      expect(response.body.data.completeSurvey).toBe(true);
+    });
+
+    it('should rollback transaction on failure', async () => {
+      const invalidQuestionId = 999;
+      const invalidOptionId = 999;
+
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+            mutation {
+              completeSurvey(id: ${testSurveyId}, completeSurveyInput: {
+                answers: [
+                  {
+                    questionId: ${invalidQuestionId},
+                    selectedOptionId: ${invalidOptionId}
+                  }
+                ]
+              })
+            }
+          `,
+        });
+
+      const error = response.body.errors[0];
+      expect(error.message).toBeDefined();
+      expect(error.extensions.code).toBe('NOT_FOUND');
+      expect(error.extensions.httpStatusCode).toBe(404);
+
+      const survey = await surveyRepository.findOneBy({ id: testSurveyId });
+      expect(survey.isCompleted).toBe(false);
+    });
+
+    it('All process complete survey and calculate total score of a survey', async () => {
+      let response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+          mutation {
+            createSurvey(createSurveyInput: {
+              title: "Test Survey",
+              description: "Test Description",
+              isCompleted: false
+            }) {
+              id
+            }
+          }
+        `,
+        });
+
+      const surveyId = response.body.data.createSurvey.id;
+      response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+            mutation {
+              createQuestion(createQuestionInput: {
+                content: "Test Question"
+                surveyIds: [${surveyId}]
+              }) {
+                id
+              }
+            }
+          `,
+        });
+
+      const questionId = response.body.data.createQuestion.id;
+
+      response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+            mutation {
+              createOption(createOptionInput: {
+                content: "Test Option",
+                score: 10,
+                questionId: ${questionId} 
+              }) {
+                id
+              }
+            }
+          `,
+        });
+      const optionId = response.body.data.createOption.id;
+
+      await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+            mutation {
+              completeSurvey(id: ${surveyId}, completeSurveyInput: {
+                answers: [
+                  {
+                    questionId: ${questionId}, 
+                    selectedOptionId: ${optionId} 
+                  }
+                ]
+              })
+            }
+          `,
+        });
+
+      response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+            query {
+              getCompletedSurveys{
+                id
+                title
+                description
+                isCompleted
+              }
+            }
+          `,
+        });
+
+      expect(response.status).toBe(200);
+
+      response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+            query {
+              getSurveyTotalScore(id: ${surveyId})
+            }
+          `,
+        });
+
+      if (response.status !== 200) {
+        console.error('Unexpected status code:', response.status);
+        console.error('Response body:', response.body);
+      }
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.getSurveyTotalScore).toBe(10);
     });
   });
 });

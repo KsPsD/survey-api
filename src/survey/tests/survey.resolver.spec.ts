@@ -13,6 +13,7 @@ describe('SurveyResolver', () => {
       create: jest.fn(),
       update: jest.fn(),
       remove: jest.fn(),
+      completeSurvey: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -78,5 +79,25 @@ describe('SurveyResolver', () => {
 
     expect(await resolver.deleteSurvey(surveyId)).toEqual(true);
     expect(mockSurveyService.remove).toHaveBeenCalledWith(surveyId);
+  });
+
+  it('complete a survey', async () => {
+    const surveyId = 1;
+    const completeSurveyInput = {
+      answers: [
+        { questionId: 1, selectedOptionId: 1 },
+        { questionId: 2, selectedOptionId: 2 },
+      ],
+    };
+    const expectedSurvey = { id: surveyId, ...completeSurveyInput };
+    mockSurveyService.completeSurvey.mockResolvedValue(expectedSurvey);
+
+    expect(
+      await resolver.completeSurvey(surveyId, completeSurveyInput),
+    ).toEqual(expectedSurvey);
+    expect(mockSurveyService.completeSurvey).toHaveBeenCalledWith(
+      surveyId,
+      completeSurveyInput,
+    );
   });
 });

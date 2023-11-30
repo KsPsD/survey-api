@@ -7,7 +7,7 @@ import { OptionModule } from '../src/option/option.module';
 import { ApolloDriver } from '@nestjs/apollo';
 import { DataSource, Repository } from 'typeorm';
 import { Option } from '../src/option/option.entity';
-import { Survey } from '../src/survey/survey.entity';
+import { Survey, SurveyQuestion } from '../src/survey/survey.entity';
 import { SurveyModule } from '../src/survey/survey.module';
 import { Question } from '../src/question/question.entity';
 import { QuestionModule } from '../src/question/question.module';
@@ -23,6 +23,7 @@ describe('Option (e2e)', () => {
   let mockQuestion: Question;
   let questionId: number;
   let optionId: number;
+  let surveyQuestionRepository: Repository<SurveyQuestion>;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -46,6 +47,9 @@ describe('Option (e2e)', () => {
     questionRepository = moduleFixture.get<Repository<Question>>(
       'QUESTION_REPOSITORY',
     );
+    surveyQuestionRepository = moduleFixture.get<Repository<SurveyQuestion>>(
+      'SURVEY_QUESTION_REPOSITORY',
+    );
     await app.init();
   });
 
@@ -55,15 +59,26 @@ describe('Option (e2e)', () => {
       description: 'Description of Test Survey',
       isCompleted: false,
     });
-    const savedSurvey = await surveyRepository.save(mockSurvey);
-    surveyId = savedSurvey.id;
-
     mockQuestion = questionRepository.create({
       content: 'Test Question',
-      survey: mockSurvey,
     });
+    const mockSurveyQuestion = surveyQuestionRepository.create({
+      survey: mockSurvey,
+      question: mockQuestion,
+    });
+
+    const savedSurveyQuestion =
+      await surveyQuestionRepository.save(mockSurveyQuestion);
+
+    mockQuestion.surveyQuestions = [savedSurveyQuestion];
+
+    mockSurvey.surveyQuestions = [savedSurveyQuestion];
+
+    const savedSurvey = await surveyRepository.save(mockSurvey);
+
     const savedQuestion = await questionRepository.save(mockQuestion);
     questionId = savedQuestion.id;
+    surveyId = savedSurvey.id;
 
     const option = optionRepository.create({
       content: 'Original Content',

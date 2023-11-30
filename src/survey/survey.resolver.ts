@@ -1,9 +1,16 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { SurveyService } from './survey.service';
 import { Survey } from './survey.entity';
-import { CreateSurveyInput, UpdateSurveyInput } from './dto/survey.input';
+import {
+  CompleteSurveyInput,
+  CreateSurveyInput,
+  UpdateSurveyInput,
+} from './dto/survey.input';
+import { UseFilters } from '@nestjs/common';
+import { GqlHttpExceptionFilter } from '../base/filters/gql-http-exception.filter';
 
 @Resolver((of) => Survey)
+@UseFilters(GqlHttpExceptionFilter)
 export class SurveyResolver {
   constructor(private surveyService: SurveyService) {}
 
@@ -36,5 +43,23 @@ export class SurveyResolver {
   @Mutation((returns) => Boolean)
   async deleteSurvey(@Args('id') id: number) {
     return this.surveyService.remove(id);
+  }
+
+  @Mutation((returns) => Boolean)
+  async completeSurvey(
+    @Args('id', { type: () => Int }) id: number,
+    @Args('completeSurveyInput') completeSurveyInput: CompleteSurveyInput,
+  ): Promise<Boolean> {
+    return this.surveyService.completeSurvey(id, completeSurveyInput);
+  }
+
+  @Query(() => [Survey])
+  async getCompletedSurveys() {
+    return this.surveyService.findCompletedSurveys();
+  }
+
+  @Query(() => Int)
+  async getSurveyTotalScore(@Args('id', { type: () => Int }) id: number) {
+    return this.surveyService.calculateTotalScore(id);
   }
 }

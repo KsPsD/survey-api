@@ -50,7 +50,7 @@ describe('QuestionResolver', () => {
   });
 
   it('create a question', async () => {
-    const questionData = { content: 'Test Question', surveyId: 1 };
+    const questionData = { content: 'Test Question', surveyIds: [1] };
     const expectedQuestion = { id: 1, ...questionData };
     mockQuestionService.create.mockResolvedValue(expectedQuestion);
 

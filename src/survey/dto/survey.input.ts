@@ -1,5 +1,13 @@
-import { Field, InputType } from '@nestjs/graphql';
-import { IsBoolean, IsOptional, IsString, IsNumber } from 'class-validator';
+import { Field, InputType, Int } from '@nestjs/graphql';
+import {
+  IsBoolean,
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsArray,
+  IsInt,
+} from 'class-validator';
+import { CreateAnswerInput } from '../../answer/dto/answer.input';
 
 @InputType()
 class SurveyInputBase {
@@ -23,6 +31,18 @@ export class CreateSurveyInput extends SurveyInputBase {
   @Field()
   @IsString()
   title: string;
+
+  @Field(() => [Int], { nullable: true })
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  questionIds?: number[];
 }
 @InputType()
 export class UpdateSurveyInput extends SurveyInputBase {}
+
+@InputType()
+export class CompleteSurveyInput extends SurveyInputBase {
+  @Field(() => [CreateAnswerInput])
+  answers: CreateAnswerInput[];
+}

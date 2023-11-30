@@ -1,11 +1,5 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  OneToMany,
-} from 'typeorm';
-import { Survey } from '../survey/survey.entity';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Survey, SurveyQuestion } from '../survey/survey.entity';
 import { Option } from '../option/option.entity';
 import { Answer } from '../answer/answer.entity';
 import { BaseEntity } from '../base/base.entity';
@@ -22,11 +16,9 @@ export class Question extends BaseEntity {
   @Column()
   content: string;
 
-  @Field(() => Survey)
-  @ManyToOne(() => Survey, (survey) => survey.questions, {
-    onDelete: 'CASCADE',
-  })
-  survey: Survey;
+  @Field(() => [SurveyQuestion], { nullable: true })
+  @OneToMany(() => SurveyQuestion, (surveyQuestion) => surveyQuestion.question)
+  surveyQuestions: SurveyQuestion[];
 
   @Field(() => [Option], { nullable: true })
   @OneToMany(() => Option, (option) => option.question, {
