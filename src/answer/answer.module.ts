@@ -9,6 +9,6 @@ import { OptionModule } from '../option/option.module';
 @Module({
   imports: [DatabaseModule, QuestionModule, OptionModule],
   providers: [AnswerService, AnswerResolver, ...AnswerRepository],
-  exports: [AnswerService],
+  exports: [AnswerService, ...AnswerRepository],
 })
 export class AnswerModule {}
