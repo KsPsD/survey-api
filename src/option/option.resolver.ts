@@ -2,8 +2,11 @@ import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { OptionService } from './option.service';
 import { Option } from './option.entity';
 import { CreateOptionInput, UpdateOptionInput } from './dto/option.input';
+import { UseFilters } from '@nestjs/common';
+import { GqlHttpExceptionFilter } from '../base/filters/gql-http-exception.filter';
 
 @Resolver((of) => Option)
+@UseFilters(GqlHttpExceptionFilter)
 export class OptionResolver {
   constructor(private optionService: OptionService) {}
 

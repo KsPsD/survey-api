@@ -2,8 +2,11 @@ import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { AnswerService } from './answer.service';
 import { Answer } from './answer.entity';
 import { CreateAnswerInput, UpdateAnswerInput } from './dto/answer.input';
+import { UseFilters } from '@nestjs/common';
+import { GqlHttpExceptionFilter } from '../base/filters/gql-http-exception.filter';
 
 @Resolver((of) => Answer)
+@UseFilters(GqlHttpExceptionFilter)
 export class AnswerResolver {
   constructor(private answerService: AnswerService) {}
 

@@ -6,8 +6,11 @@ import {
   CreateSurveyInput,
   UpdateSurveyInput,
 } from './dto/survey.input';
+import { UseFilters } from '@nestjs/common';
+import { GqlHttpExceptionFilter } from '../base/filters/gql-http-exception.filter';
 
 @Resolver((of) => Survey)
+@UseFilters(GqlHttpExceptionFilter)
 export class SurveyResolver {
   constructor(private surveyService: SurveyService) {}
 
