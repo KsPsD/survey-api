@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AnswerService } from './answer.service';
 import { AnswerResolver } from './answer.resolver';
 import { AnswerRepository } from './answer.repository';
@@ -7,7 +7,11 @@ import { QuestionModule } from '../question/question.module';
 import { OptionModule } from '../option/option.module';
 
 @Module({
-  imports: [DatabaseModule, QuestionModule, OptionModule],
+  imports: [
+    DatabaseModule,
+    forwardRef(() => QuestionModule),
+    forwardRef(() => OptionModule),
+  ],
   providers: [AnswerService, AnswerResolver, ...AnswerRepository],
   exports: [AnswerService, ...AnswerRepository],
 })
