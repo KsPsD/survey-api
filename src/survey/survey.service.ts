@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Repository, EntityManager, DataSource, In } from 'typeorm';
-import { Survey } from './survey.entity';
+import { Survey, SurveyQuestion } from './survey.entity';
 import {
   CompleteSurveyInput,
   CreateSurveyInput,
@@ -17,13 +17,39 @@ export class SurveyService {
     private dataSource: DataSource,
     @Inject('SURVEY_REPOSITORY')
     private surveyRepository: Repository<Survey>,
+    @Inject('ANSWER_REPOSITORY')
+    private answerRepository: Repository<Answer>,
+    @Inject('SURVEY_QUESTION_REPOSITORY')
+    private surveyQuestionRepository: Repository<SurveyQuestion>,
+    @Inject('QUESTION_REPOSITORY')
+    private questionRepository: Repository<Question>,
   ) {}
 
-  async create(
-    createSurveyInput: CreateSurveyInput,
-  ): Promise<Survey[] | Survey> {
-    const survey = this.surveyRepository.create(createSurveyInput);
-    return this.surveyRepository.save(survey);
+  async create(createSurveyInput: CreateSurveyInput): Promise<Survey> {
+    const { questionIds, ...surveyDetails } = createSurveyInput;
+
+    const survey = this.surveyRepository.create(surveyDetails);
+    const savedSurvey = await this.surveyRepository.save(survey);
+
+    if (questionIds && questionIds.length > 0) {
+      const questions = await this.questionRepository.find({
+        where: { id: In(questionIds) },
+      });
+      if (questions.length !== questionIds.length) {
+        throw new NotFoundException(`One or more questions not found`);
+      }
+
+      const surveyQuestions = questions.map((question) => {
+        return this.surveyQuestionRepository.create({
+          survey: savedSurvey,
+          question: question,
+        });
+      });
+
+      await this.surveyQuestionRepository.save(surveyQuestions);
+    }
+
+    return savedSurvey;
   }
 
   async findAll(): Promise<Survey[]> {
