@@ -1,13 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SurveyService } from '../survey.service';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import { Survey } from '../survey.entity';
 import { NotFoundException } from '@nestjs/common/exceptions';
-import { SurveyRepository } from '../survey.repository';
+import { Question } from '../../question/question.entity';
+import { Option } from '../../option/option.entity';
+import { In } from 'typeorm';
 
 describe('SurveyService', () => {
   let service: SurveyService;
   let mockSurveyRepository;
+  let mockDataSource;
+  let managerMock;
 
   beforeEach(async () => {
     mockSurveyRepository = {
@@ -18,12 +21,25 @@ describe('SurveyService', () => {
       delete: jest.fn(),
       find: jest.fn(),
     };
+    managerMock = {
+      findOne: jest.fn(),
+      create: jest.fn(),
+      find: jest.fn(),
+      save: jest.fn(),
+    };
+    mockDataSource = {
+      transaction: jest.fn().mockImplementation((cb) => cb(managerMock)),
+    };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SurveyService,
         {
           provide: 'SURVEY_REPOSITORY',
           useValue: mockSurveyRepository,
+        },
+        {
+          provide: 'DATA_SOURCE',
+          useValue: mockDataSource,
         },
       ],
     }).compile();
@@ -66,7 +82,6 @@ describe('SurveyService', () => {
     });
 
     const result = await service.update(surveyId, { ...updateData });
-    console.log(result);
 
     expect(mockSurveyRepository.findOneBy).toHaveBeenCalledWith({
       id: surveyId,
@@ -148,5 +163,56 @@ describe('SurveyService', () => {
       id: surveyId,
     });
     expect(result).toEqual(expectedSurvey);
+  });
+
+  it('successfully completes a survey', async () => {
+    const surveyId = 1;
+    const answers = [{ questionId: 1, selectedOptionId: 1 }];
+    const survey = { id: surveyId, isCompleted: false };
+    const questions = [{ id: 1 }];
+    const options = [{ id: 1 }];
+
+    managerMock.findOne.mockResolvedValue(survey);
+    managerMock.find.mockImplementation((entity) => {
+      if (entity === Question) {
+        return Promise.resolve(questions);
+      }
+      if (entity === Option) {
+        return Promise.resolve(options);
+      }
+    });
+
+    const isSuccess = await service.completeSurvey(surveyId, { answers });
+
+    expect(isSuccess).toBeTruthy();
+    expect(managerMock.findOne).toHaveBeenCalledWith(Survey, {
+      where: { id: surveyId },
+    });
+    expect(managerMock.find).toHaveBeenCalledWith(Question, {
+      where: { id: In([1]) },
+    });
+    expect(managerMock.find).toHaveBeenCalledWith(Option, {
+      where: { id: In([1]) },
+    });
+    expect(managerMock.save).toHaveBeenCalledTimes(1);
+    expect(mockSurveyRepository.save).toHaveBeenCalledWith({
+      id: surveyId,
+      isCompleted: true,
+    });
+  });
+
+  it('throws NotFoundException if survey not found', async () => {
+    const surveyId = 1;
+    const answers = [{ questionId: 1, selectedOptionId: 1 }];
+
+    managerMock.findOne.mockResolvedValue(null);
+
+    await expect(service.completeSurvey(surveyId, { answers })).rejects.toThrow(
+      NotFoundException,
+    );
+
+    expect(managerMock.findOne).toHaveBeenCalledWith(Survey, {
+      where: { id: surveyId },
+    });
   });
 });
