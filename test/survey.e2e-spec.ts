@@ -5,12 +5,13 @@ import * as request from 'supertest';
 import { GraphQLModule } from '@nestjs/graphql';
 import { SurveyModule } from '../src/survey/survey.module';
 import { ApolloDriver } from '@nestjs/apollo';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Survey, SurveyQuestion } from '../src/survey/survey.entity';
 import { OptionModule } from '../src/option/option.module';
 import { QuestionModule } from '../src/question/question.module';
 import { Option } from '../src/option/option.entity';
 import { Question } from '../src/question/question.entity';
+import { DatabaseModule } from '../src/database/database.module';
 
 describe('App (e2e)', () => {
   let app: INestApplication;
@@ -40,21 +41,19 @@ describe('App (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    await app.init();
+
     dataSource = moduleFixture.get<DataSource>('DATA_SOURCE');
     surveyRepository =
       moduleFixture.get<Repository<Survey>>('SURVEY_REPOSITORY');
     optionRepository =
       moduleFixture.get<Repository<Option>>('OPTION_REPOSITORY');
-    surveyRepository =
-      moduleFixture.get<Repository<Survey>>('SURVEY_REPOSITORY');
     questionRepository = moduleFixture.get<Repository<Question>>(
       'QUESTION_REPOSITORY',
     );
     surveyQuestionRepository = moduleFixture.get<Repository<SurveyQuestion>>(
       'SURVEY_QUESTION_REPOSITORY',
     );
-
-    await app.init();
   });
 
   beforeEach(async () => {
@@ -270,6 +269,111 @@ describe('App (e2e)', () => {
 
       const survey = await surveyRepository.findOneBy({ id: testSurveyId });
       expect(survey.isCompleted).toBe(false);
+    });
+
+    it('All process complete survey and calculate total score of a survey', async () => {
+      let response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+          mutation {
+            createSurvey(createSurveyInput: {
+              title: "Test Survey",
+              description: "Test Description",
+              isCompleted: false
+            }) {
+              id
+            }
+          }
+        `,
+        });
+
+      const surveyId = response.body.data.createSurvey.id;
+      response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+            mutation {
+              createQuestion(createQuestionInput: {
+                content: "Test Question"
+                surveyIds: [${surveyId}]
+              }) {
+                id
+              }
+            }
+          `,
+        });
+
+      const questionId = response.body.data.createQuestion.id;
+
+      response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+            mutation {
+              createOption(createOptionInput: {
+                content: "Test Option",
+                score: 10,
+                questionId: ${questionId} 
+              }) {
+                id
+              }
+            }
+          `,
+        });
+      const optionId = response.body.data.createOption.id;
+
+      await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+            mutation {
+              completeSurvey(id: ${surveyId}, completeSurveyInput: {
+                answers: [
+                  {
+                    questionId: ${questionId}, 
+                    selectedOptionId: ${optionId} 
+                  }
+                ]
+              })
+            }
+          `,
+        });
+
+      response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+            query {
+              getCompletedSurveys{
+                id
+                title
+                description
+                isCompleted
+              }
+            }
+          `,
+        });
+
+      expect(response.status).toBe(200);
+
+      response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+            query {
+              getSurveyTotalScore(id: ${surveyId})
+            }
+          `,
+        });
+
+      if (response.status !== 200) {
+        console.error('Unexpected status code:', response.status);
+        console.error('Response body:', response.body);
+      }
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.getSurveyTotalScore).toBe(10);
     });
   });
 });
