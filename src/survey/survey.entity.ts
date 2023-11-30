@@ -25,6 +25,7 @@ export class Survey extends BaseEntity {
   @Column({ nullable: true })
   description: string;
 
+  @Field(() => [SurveyQuestion], { nullable: true })
   @OneToMany(() => SurveyQuestion, (surveyQuestion) => surveyQuestion.survey)
   surveyQuestions: SurveyQuestion[];
 
@@ -33,15 +34,19 @@ export class Survey extends BaseEntity {
   isCompleted: boolean;
 }
 
+@ObjectType()
 @Entity()
 export class SurveyQuestion extends BaseEntity {
+  @Field(() => Int)
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Field(() => Survey)
   @ManyToOne(() => Survey, (survey) => survey.surveyQuestions)
   @JoinColumn({ name: 'surveyId' })
   survey: Survey;
 
+  @Field(() => Question)
   @ManyToOne(() => Question, (question) => question.surveyQuestions)
   @JoinColumn({ name: 'questionId' })
   question: Question;

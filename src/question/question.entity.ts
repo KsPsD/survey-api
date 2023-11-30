@@ -16,6 +16,7 @@ export class Question extends BaseEntity {
   @Column()
   content: string;
 
+  @Field(() => [SurveyQuestion], { nullable: true })
   @OneToMany(() => SurveyQuestion, (surveyQuestion) => surveyQuestion.question)
   surveyQuestions: SurveyQuestion[];
 
