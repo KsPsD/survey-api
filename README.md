@@ -50,4 +50,4 @@ $ npm run test:cov
 
 ## API Documentation
 
-앱 실행한 후 http://localhost:4000/graphql을 접속하여 GraphQL 플레이그라운드에 액세스하고 API 문서 확인 가능
+앱 실행한 후 http://localhost:4000/graphql에 접속하여 GraphQL 플레이그라운드에 액세스하고 API 문서 확인 가능
