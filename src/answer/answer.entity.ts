@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, ManyToOne, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Question } from '../question/question.entity';
 import { Option } from '../option/option.entity';
 import { BaseEntity } from '../base/base.entity';
 import { ObjectType, Field, Int } from '@nestjs/graphql';
+import { Survey } from '../survey/survey.entity';
 @ObjectType()
 @Entity()
 export class Answer extends BaseEntity {
@@ -19,4 +20,9 @@ export class Answer extends BaseEntity {
   @Field(() => Option)
   @ManyToOne(() => Option, (option) => option.answers, { onDelete: 'CASCADE' })
   selectedOption: Option;
+
+  @Field(() => Survey)
+  @ManyToOne(() => Survey, (survey) => survey.answers)
+  @JoinColumn({ name: 'surveyId' })
+  survey: Survey;
 }
