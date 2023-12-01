@@ -116,9 +116,23 @@ export class SurveyService {
           throw new NotFoundException(`Question or Option not found`);
         }
 
+        const surveyQuestion = await manager.findOne(SurveyQuestion, {
+          where: {
+            survey: { id: survey.id },
+            question: { id: question.id },
+          },
+        });
+
+        if (!surveyQuestion) {
+          throw new NotFoundException(
+            `Question with ID ${question.id} does not belong to Survey with ID ${id}`,
+          );
+        }
+
         const answerEntity = manager.create(Answer, {
           question,
           selectedOption,
+          survey,
         });
 
         await manager.save(answerEntity);
