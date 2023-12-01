@@ -9,6 +9,7 @@ import {
 import { Question } from '../question/question.entity';
 import { BaseEntity } from '../base/base.entity';
 import { ObjectType, Field, Int } from '@nestjs/graphql';
+import { Answer } from '../answer/answer.entity';
 
 @ObjectType()
 @Entity()
@@ -32,6 +33,10 @@ export class Survey extends BaseEntity {
   @Field()
   @Column({ default: false })
   isCompleted: boolean;
+
+  @Field(() => [Answer], { nullable: true })
+  @OneToMany(() => Answer, (answer) => answer.survey)
+  answers: Answer[];
 }
 
 @ObjectType()

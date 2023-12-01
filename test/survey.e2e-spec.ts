@@ -72,7 +72,11 @@ describe('App (e2e)', () => {
       question: mockQuestion,
     });
 
-    mockSurvey.surveyQuestions = [mockSurveyQuestion];
+    const savedSurveyQuestion =
+      await surveyQuestionRepository.save(mockSurveyQuestion);
+
+    mockSurvey.surveyQuestions = [savedSurveyQuestion];
+    mockQuestion.surveyQuestions = [savedSurveyQuestion];
 
     const savedSurvey = await surveyRepository.save(mockSurvey);
     const savedQuestion = await questionRepository.save(mockQuestion);
@@ -90,6 +94,7 @@ describe('App (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
+    await dataSource.synchronize(true);
 
     await dataSource.destroy();
   });

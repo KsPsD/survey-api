@@ -2,13 +2,19 @@
 
 Survey API with GraphQL and NestJS
 
+## Simple Entity Relation Diagram
+
+![Alt text](image.png)
+
+익명으로 설문조사를 진행한다 가정하고 설계함
+
 ## Requirements
 
-Docker
+- Docker
 
-node-js v18.18.2
+- node v18.18.2
 
-npm v9.8.1
+- npm v9.8.1
 
 ## Installation
 

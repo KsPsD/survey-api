@@ -116,9 +116,23 @@ export class SurveyService {
           throw new NotFoundException(`Question or Option not found`);
         }
 
+        const surveyQuestion = await manager.findOne(SurveyQuestion, {
+          where: {
+            survey: { id: survey.id },
+            question: { id: question.id },
+          },
+        });
+
+        if (!surveyQuestion) {
+          throw new NotFoundException(
+            `Question with ID ${question.id} does not belong to Survey with ID ${id}`,
+          );
+        }
+
         const answerEntity = manager.create(Answer, {
           question,
           selectedOption,
+          survey,
         });
 
         await manager.save(answerEntity);
@@ -140,25 +154,18 @@ export class SurveyService {
   async calculateTotalScore(surveyId: number): Promise<number> {
     let totalScore = 0;
 
-    const surveyQuestions = await this.surveyQuestionRepository.find({
-      where: { survey: { id: surveyId } },
-      relations: ['question'],
+    const survey = await this.surveyRepository.findOne({
+      where: { id: surveyId },
+      relations: ['answers', 'answers.selectedOption'],
     });
 
-    if (!surveyQuestions.length) {
+    if (!survey || !survey.answers) {
       return totalScore;
     }
 
-    for (const surveyQuestion of surveyQuestions) {
-      const answers = await this.answerRepository.find({
-        where: { question: { id: surveyQuestion.question.id } },
-        relations: ['selectedOption'],
-      });
-
-      for (const answer of answers) {
-        totalScore += answer.selectedOption ? answer.selectedOption.score : 0;
-      }
-    }
+    survey.answers.forEach((answer) => {
+      totalScore += answer.selectedOption ? answer.selectedOption.score : 0;
+    });
 
     return totalScore;
   }
