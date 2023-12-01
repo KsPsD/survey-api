@@ -20,6 +20,7 @@ describe('SurveyService', () => {
       create: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
+      findOne: jest.fn(),
       findOneBy: jest.fn(),
       delete: jest.fn(),
       find: jest.fn(),
@@ -279,45 +280,35 @@ describe('SurveyService', () => {
 
   it('calculate the total score of a survey', async () => {
     const surveyId = 1;
-    const mockSurveyQuestions = [
-      { question: { id: 1 } },
-      { question: { id: 2 } },
+    const mockAnswers = [
+      { selectedOption: { score: 5 } },
+      { selectedOption: { score: 10 } },
     ];
-    const mockAnswersForEachQuestion = {
-      1: [{ selectedOption: { score: 5 } }],
-      2: [{ selectedOption: { score: 10 } }],
-    };
 
-    mockSurveyQuestionRepository.find.mockResolvedValue(mockSurveyQuestions);
-    mockAnswerRepository.find.mockImplementation(
-      ({
-        where: {
-          question: { id },
-        },
-      }) => mockAnswersForEachQuestion[id],
-    );
+    mockSurveyRepository.findOne.mockResolvedValue({
+      id: surveyId,
+      answers: mockAnswers,
+    });
+
     const totalScore = await service.calculateTotalScore(surveyId);
 
-    expect(mockSurveyQuestionRepository.find).toHaveBeenCalledWith({
-      where: { survey: { id: surveyId } },
-      relations: ['question'],
+    expect(mockSurveyRepository.findOne).toHaveBeenCalledWith({
+      where: { id: surveyId },
+      relations: ['answers', 'answers.selectedOption'],
     });
-    expect(mockAnswerRepository.find).toHaveBeenCalledTimes(
-      mockSurveyQuestions.length,
-    );
     expect(totalScore).toEqual(15);
   });
 
   it('return zero if no survey questions are found', async () => {
     const surveyId = 1;
-    mockSurveyQuestionRepository.find.mockResolvedValue([]);
+
+    mockSurveyRepository.findOne.mockResolvedValue({
+      id: surveyId,
+      answers: [],
+    });
 
     const totalScore = await service.calculateTotalScore(surveyId);
 
-    expect(mockSurveyQuestionRepository.find).toHaveBeenCalledWith({
-      where: { survey: { id: surveyId } },
-      relations: ['question'],
-    });
     expect(totalScore).toEqual(0);
   });
 });
