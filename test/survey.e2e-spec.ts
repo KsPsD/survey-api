@@ -67,6 +67,7 @@ describe('App (e2e)', () => {
       content: 'Test Question',
       surveyQuestions: [{ survey: mockSurvey }],
     });
+
     const mockSurveyQuestion = surveyQuestionRepository.create({
       survey: mockSurvey,
       question: mockQuestion,
@@ -221,6 +222,21 @@ describe('App (e2e)', () => {
         });
     });
     it('complete a survey', async () => {
+      const mockQuestion2 = questionRepository.create({
+        content: 'Test Question 2',
+        surveyQuestions: [{ survey: mockSurvey }],
+      });
+      const mockSurveyQuestion2 = surveyQuestionRepository.create({
+        survey: mockSurvey,
+        question: mockQuestion2,
+      });
+      const savedSurveyQuestion2 =
+        await surveyQuestionRepository.save(mockSurveyQuestion2);
+      mockQuestion2.surveyQuestions = [savedSurveyQuestion2];
+      mockSurvey.surveyQuestions.push(savedSurveyQuestion2);
+      await surveyRepository.save(mockSurvey);
+      const question2 = await questionRepository.save(mockQuestion2);
+
       const response = await request(app.getHttpServer())
         .post('/graphql')
         .send({
@@ -230,6 +246,10 @@ describe('App (e2e)', () => {
                 answers: [
                   {
                     questionId: ${questionId},
+                    selectedOptionId: ${optionId}
+                  }
+                  {
+                    questionId: ${question2.id},
                     selectedOptionId: ${optionId}
                   }
                 ]
@@ -243,6 +263,11 @@ describe('App (e2e)', () => {
         console.error('Response body:', response.body);
       }
       expect(response.status).toBe(200);
+      const res = await surveyRepository.findOne({
+        where: { id: testSurveyId },
+        relations: ['answers'],
+      });
+      expect(res.answers.length).toBe(2);
       expect(response.body.data.completeSurvey).toBe(true);
     });
 

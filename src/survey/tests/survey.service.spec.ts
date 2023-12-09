@@ -256,7 +256,7 @@ describe('SurveyService', () => {
     expect(managerMock.find).toHaveBeenCalledWith(Option, {
       where: { id: In([1]) },
     });
-    expect(managerMock.save).toHaveBeenCalledTimes(1);
+    expect(managerMock.save).toHaveBeenCalledTimes(2);
     expect(mockSurveyRepository.save).toHaveBeenCalledWith({
       id: surveyId,
       isCompleted: true,
