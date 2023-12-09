@@ -107,6 +107,8 @@ export class SurveyService {
         where: { id: In(optionIds) },
       });
 
+      const answerEntities = [];
+
       for (const answer of answers) {
         const { questionId, selectedOptionId } = answer;
         const question = questions.find((q) => q.id === questionId);
@@ -135,12 +137,14 @@ export class SurveyService {
           survey,
         });
 
-        await manager.save(answerEntity);
+        answerEntities.push(answerEntity);
       }
 
-      survey.isCompleted = true;
+      await manager.save(answerEntities);
 
-      await this.surveyRepository.save(survey);
+      survey.isCompleted = true;
+      await manager.save(survey);
+
       isSuccess = true;
     });
     this.logger.log(`Completed survey with ID ${id}`);
