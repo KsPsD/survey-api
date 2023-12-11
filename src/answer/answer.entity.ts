@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+} from 'typeorm';
 import { Question } from '../question/question.entity';
 import { Option } from '../option/option.entity';
 import { BaseEntity } from '../base/base.entity';
@@ -17,9 +24,10 @@ export class Answer extends BaseEntity {
   })
   question: Question;
 
-  @Field(() => Option)
-  @ManyToOne(() => Option, (option) => option.answers, { onDelete: 'CASCADE' })
-  selectedOption: Option;
+  @Field(() => [Option])
+  @ManyToMany(() => Option, (option) => option.answers)
+  @JoinTable()
+  selectedOptions: Option[];
 
   @Field(() => Survey)
   @ManyToOne(() => Survey, (survey) => survey.answers)
