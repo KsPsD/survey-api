@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Answer } from './answer.entity';
 import { CreateAnswerInput, UpdateAnswerInput } from './dto/answer.input';
 import { Question } from '../question/question.entity';
@@ -17,7 +17,7 @@ export class AnswerService {
   ) {}
 
   async create(createAnswerInput: CreateAnswerInput): Promise<Answer> {
-    const { questionId, selectedOptionId } = createAnswerInput;
+    const { questionId, selectedOptionIds } = createAnswerInput;
 
     const question = await this.questionRepository.findOne({
       where: { id: questionId },
@@ -26,17 +26,17 @@ export class AnswerService {
       throw new NotFoundException(`Question with id ${questionId} not found`);
     }
 
-    const option = await this.optionRepository.findOne({
-      where: { id: selectedOptionId },
+    const options = await this.optionRepository.find({
+      where: { id: In(selectedOptionIds) },
     });
-    if (!option) {
+    if (!options) {
       throw new NotFoundException(
-        `Option with id ${selectedOptionId} not found`,
+        `Option with id ${selectedOptionIds} not found`,
       );
     }
 
     const answer = this.answerRepository.create({
-      selectedOption: option,
+      selectedOptions: options,
       question,
     });
 
@@ -45,14 +45,14 @@ export class AnswerService {
 
   async findAll(): Promise<Answer[]> {
     return this.answerRepository.find({
-      relations: ['question', 'selectedOption'],
+      relations: ['question', 'selectedOptions'],
     });
   }
 
   async findOne(id: number): Promise<Answer> {
     const answer = await this.answerRepository.findOne({
       where: { id },
-      relations: ['question', 'selectedOption'],
+      relations: ['question', 'selectedOptions'],
     });
     if (!answer) {
       throw new NotFoundException(`answer with ID ${id} not found`);
@@ -82,16 +82,16 @@ export class AnswerService {
       answer.question = question;
     }
 
-    if (updateAnswerInput.selectedOptionId) {
-      const option = await this.optionRepository.findOne({
-        where: { id: updateAnswerInput.selectedOptionId },
+    if (updateAnswerInput.selectedOptionIds) {
+      const options = await this.optionRepository.find({
+        where: { id: In(updateAnswerInput.selectedOptionIds) },
       });
-      if (!option) {
+      if (!options) {
         throw new NotFoundException(
-          `Option with ID ${updateAnswerInput.selectedOptionId} not found`,
+          `Option with ID ${updateAnswerInput.selectedOptionIds} not found`,
         );
       }
-      answer.selectedOption = option;
+      answer.selectedOptions = options;
     }
 
     return this.answerRepository.save(answer);
