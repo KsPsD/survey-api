@@ -52,7 +52,7 @@ describe('AnswerResolver', () => {
   it('create a answer', async () => {
     const answerData = {
       questionId: 1,
-      selectedOptionId: 1,
+      selectedOptionIds: [1],
     };
     const expectedAnswer = { id: 1, ...answerData };
     mockAnswerService.create.mockResolvedValue(expectedAnswer);
@@ -63,7 +63,7 @@ describe('AnswerResolver', () => {
 
   it('update a answer', async () => {
     const answerId = 1;
-    const updateAnswerInput = { selectedOptionId: 2 };
+    const updateAnswerInput = { selectedOptionIds: [2] };
     const updatedAnswer = { id: answerId, ...updateAnswerInput };
     mockAnswerService.update.mockResolvedValue(updatedAnswer);
 
