@@ -246,11 +246,11 @@ describe('App (e2e)', () => {
                 answers: [
                   {
                     questionId: ${questionId},
-                    selectedOptionId: ${optionId}
+                    selectedOptionIds: ${[optionId]}
                   }
                   {
                     questionId: ${question2.id},
-                    selectedOptionId: ${optionId}
+                    selectedOptionIds: ${[optionId]}
                   }
                 ]
               })
@@ -265,7 +265,7 @@ describe('App (e2e)', () => {
       expect(response.status).toBe(200);
       const res = await surveyRepository.findOne({
         where: { id: testSurveyId },
-        relations: ['answers'],
+        relations: ['answers', 'answers.selectedOptions'],
       });
       expect(res.answers.length).toBe(2);
       expect(response.body.data.completeSurvey).toBe(true);
@@ -284,7 +284,7 @@ describe('App (e2e)', () => {
                 answers: [
                   {
                     questionId: ${invalidQuestionId},
-                    selectedOptionId: ${invalidOptionId}
+                    selectedOptionIds: ${[invalidOptionId]}
                   }
                 ]
               })
@@ -344,7 +344,7 @@ describe('App (e2e)', () => {
               createOption(createOptionInput: {
                 content: "Test Option",
                 score: 10,
-                questionId: ${questionId} 
+                questionId: ${questionId}
               }) {
                 id
               }
@@ -361,8 +361,8 @@ describe('App (e2e)', () => {
               completeSurvey(id: ${surveyId}, completeSurveyInput: {
                 answers: [
                   {
-                    questionId: ${questionId}, 
-                    selectedOptionId: ${optionId} 
+                    questionId: ${questionId},
+                    selectedOptionIds: ${[optionId]}
                   }
                 ]
               })
