@@ -1,5 +1,5 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
-import { IsOptional, IsNotEmpty, IsInt } from 'class-validator';
+import { IsOptional, IsNotEmpty, IsInt, IsArray } from 'class-validator';
 
 @InputType()
 class AnswerInputBase {
@@ -8,10 +8,10 @@ class AnswerInputBase {
   @IsOptional()
   questionId?: number;
 
-  @Field(() => Int, { nullable: true })
-  @IsInt()
+  @Field(() => [Int], { nullable: true })
+  @IsArray()
   @IsOptional()
-  selectedOptionId?: number;
+  selectedOptionIds?: number[];
 }
 
 @InputType()
@@ -21,10 +21,10 @@ export class CreateAnswerInput {
   @IsNotEmpty()
   questionId: number;
 
-  @Field(() => Int)
-  @IsInt()
+  @Field(() => [Int])
+  @IsArray()
   @IsNotEmpty()
-  selectedOptionId: number;
+  selectedOptionIds: number[];
 }
 
 @InputType()

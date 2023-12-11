@@ -98,7 +98,9 @@ export class SurveyService {
         throw new NotFoundException(`Survey with ID ${id} not found`);
       }
       const questionIds = answers.map((answer) => answer.questionId);
-      const optionIds = answers.map((answer) => answer.selectedOptionId);
+      const optionIds = answers
+        .map((answer) => answer.selectedOptionIds)
+        .flat();
 
       const questions = await manager.find(Question, {
         where: { id: In(questionIds) },
@@ -110,11 +112,13 @@ export class SurveyService {
       const answerEntities = [];
 
       for (const answer of answers) {
-        const { questionId, selectedOptionId } = answer;
+        const { questionId, selectedOptionIds } = answer;
         const question = questions.find((q) => q.id === questionId);
-        const selectedOption = options.find((o) => o.id === selectedOptionId);
+        const selectedOptions = selectedOptionIds.map((id) =>
+          options.find((o) => o.id === id),
+        );
 
-        if (!question || !selectedOption) {
+        if (!question || selectedOptions.includes(undefined)) {
           throw new NotFoundException(`Question or Option not found`);
         }
 
@@ -133,7 +137,7 @@ export class SurveyService {
 
         const answerEntity = manager.create(Answer, {
           question,
-          selectedOption,
+          selectedOptions,
           survey,
         });
 
@@ -159,15 +163,18 @@ export class SurveyService {
 
     const survey = await this.surveyRepository.findOne({
       where: { id: surveyId },
-      relations: ['answers', 'answers.selectedOption'],
+      relations: ['answers', 'answers.selectedOptions'],
     });
 
     if (!survey || !survey.answers) {
       return totalScore;
     }
 
+    console.log(survey.answers);
     survey.answers.forEach((answer) => {
-      totalScore += answer.selectedOption ? answer.selectedOption.score : 0;
+      totalScore += answer.selectedOptions
+        ? answer.selectedOptions.reduce((acc, option) => acc + option.score, 0)
+        : 0;
     });
 
     return totalScore;

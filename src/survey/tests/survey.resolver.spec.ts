@@ -85,8 +85,8 @@ describe('SurveyResolver', () => {
     const surveyId = 1;
     const completeSurveyInput = {
       answers: [
-        { questionId: 1, selectedOptionId: 1 },
-        { questionId: 2, selectedOptionId: 2 },
+        { questionId: 1, selectedOptionIds: [1] },
+        { questionId: 2, selectedOptionIds: [2] },
       ],
     };
     const expectedSurvey = { id: surveyId, ...completeSurveyInput };

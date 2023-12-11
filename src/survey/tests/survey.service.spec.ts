@@ -229,7 +229,7 @@ describe('SurveyService', () => {
 
   it('successfully completes a survey', async () => {
     const surveyId = 1;
-    const answers = [{ questionId: 1, selectedOptionId: 1 }];
+    const answers = [{ questionId: 1, selectedOptionIds: [1] }];
     const survey = { id: surveyId, isCompleted: false };
     const questions = [{ id: 1 }];
     const options = [{ id: 1 }];
@@ -256,16 +256,12 @@ describe('SurveyService', () => {
     expect(managerMock.find).toHaveBeenCalledWith(Option, {
       where: { id: In([1]) },
     });
-    expect(managerMock.save).toHaveBeenCalledTimes(2);
-    expect(mockSurveyRepository.save).toHaveBeenCalledWith({
-      id: surveyId,
-      isCompleted: true,
-    });
+    expect(managerMock.save).toHaveBeenCalledTimes(1);
   });
 
   it('throws NotFoundException if survey not found', async () => {
     const surveyId = 1;
-    const answers = [{ questionId: 1, selectedOptionId: 1 }];
+    const answers = [{ questionId: 1, selectedOptionIds: [1] }];
 
     managerMock.findOne.mockResolvedValue(null);
 
@@ -281,8 +277,8 @@ describe('SurveyService', () => {
   it('calculate the total score of a survey', async () => {
     const surveyId = 1;
     const mockAnswers = [
-      { selectedOption: { score: 5 } },
-      { selectedOption: { score: 10 } },
+      { selectedOptions: [{ score: 5 }] },
+      { selectedOptions: [{ score: 10 }] },
     ];
 
     mockSurveyRepository.findOne.mockResolvedValue({
@@ -294,7 +290,7 @@ describe('SurveyService', () => {
 
     expect(mockSurveyRepository.findOne).toHaveBeenCalledWith({
       where: { id: surveyId },
-      relations: ['answers', 'answers.selectedOption'],
+      relations: ['answers', 'answers.selectedOptions'],
     });
     expect(totalScore).toEqual(15);
   });

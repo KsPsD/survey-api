@@ -13,6 +13,7 @@ describe('AnswerService', () => {
   beforeEach(async () => {
     mockOptionRepository = {
       findOne: jest.fn(),
+      find: jest.fn(),
     };
     mockQuestionRepository = {
       findOne: jest.fn(),
@@ -48,16 +49,16 @@ describe('AnswerService', () => {
 
   it('success create a answer', async () => {
     const mockQuestionId = 1;
-    const selectedOptionId = 1;
+    const selectedOptionIds = [1];
     const mockQuestion = { id: mockQuestionId, content: 'Test Question' };
-    const mockOption = { id: selectedOptionId, content: 'Test Option' };
+    const mockOptions = [{ id: selectedOptionIds[0], content: 'Test Option' }];
     const answerData = {
       questionId: mockQuestionId,
-      selectedOptionId: selectedOptionId,
+      selectedOptionIds: selectedOptionIds,
     };
 
     mockQuestionRepository.findOne.mockResolvedValue(mockQuestion);
-    mockOptionRepository.findOne.mockResolvedValue(mockOption);
+    mockOptionRepository.find.mockResolvedValue(mockOptions);
 
     mockAnswerRepository.create.mockReturnValue({
       answerData,
@@ -73,7 +74,7 @@ describe('AnswerService', () => {
     });
 
     expect(mockAnswerRepository.create).toHaveBeenCalledWith({
-      selectedOption: mockOption,
+      selectedOptions: mockOptions,
       question: mockQuestion,
     });
     expect(mockAnswerRepository.save).toHaveBeenCalledWith({
@@ -87,17 +88,17 @@ describe('AnswerService', () => {
 
   it('success updating answer with selectedOptionId', async () => {
     const answerId = 1;
-    const updateData = { selectedOptionId: 1 };
+    const updateData = { selectedOptionIds: [1] };
     const existingAnswer = {
       id: answerId,
     };
-    const updatingOption = { id: 1, content: 'Updating Option' };
+    const updatingOptions = [{ id: 1, content: 'Updating Option' }];
 
     mockAnswerRepository.findOne.mockResolvedValue(existingAnswer);
-    mockOptionRepository.findOne.mockResolvedValue(updatingOption);
+    mockOptionRepository.find.mockResolvedValue(updatingOptions);
     mockAnswerRepository.save.mockResolvedValue({
       id: existingAnswer['id'],
-      option: updatingOption,
+      option: updatingOptions,
     });
 
     const result = await service.update(answerId, { ...updateData });
@@ -108,11 +109,11 @@ describe('AnswerService', () => {
 
     expect(mockAnswerRepository.save).toHaveBeenCalledWith({
       id: existingAnswer['id'],
-      selectedOption: updatingOption,
+      selectedOptions: updatingOptions,
     });
     expect(result).toEqual({
       id: existingAnswer['id'],
-      option: updatingOption,
+      option: updatingOptions,
     });
   });
 
@@ -149,7 +150,7 @@ describe('AnswerService', () => {
 
   it('failed update a answer', async () => {
     const answerId = 1;
-    const updateData = { selectedOptionId: 1 };
+    const updateData = { selectedOptionIds: [1] };
     const existingAnswer = new Answer();
     existingAnswer.id = answerId;
 
@@ -214,7 +215,7 @@ describe('AnswerService', () => {
 
     expect(mockAnswerRepository.findOne).toHaveBeenCalledWith({
       where: { id: answerId },
-      relations: ['question', 'selectedOption'],
+      relations: ['question', 'selectedOptions'],
     });
     expect(result).toEqual(expectedAnswer);
   });

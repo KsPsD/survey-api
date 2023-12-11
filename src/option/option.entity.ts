@@ -4,6 +4,7 @@ import {
   Column,
   ManyToOne,
   OneToMany,
+  ManyToMany,
 } from 'typeorm';
 import { Question } from '../question/question.entity';
 import { Answer } from '../answer/answer.entity';
@@ -30,9 +31,7 @@ export class Option extends BaseEntity {
   })
   question: Question;
 
-  @Field(() => [Answer], { nullable: true })
-  @OneToMany(() => Answer, (answer) => answer.selectedOption, {
-    cascade: true,
-  })
+  @Field(() => [Answer])
+  @ManyToMany(() => Answer, (answer) => answer.selectedOptions)
   answers: Answer[];
 }

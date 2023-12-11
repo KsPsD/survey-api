@@ -95,7 +95,7 @@ describe('Option (e2e)', () => {
 
     const answer = answerRepository.create({
       question: mockQuestion,
-      selectedOption: savedOption,
+      selectedOptions: [savedOption],
     });
     const savedAnswer = await answerRepository.save(answer);
     answerId = savedAnswer.id;
@@ -115,7 +115,7 @@ describe('Option (e2e)', () => {
           mutation {
             createAnswer(createAnswerInput: {
               questionId: ${questionId},
-              selectedOptionId: ${optionId}
+              selectedOptionIds: ${[optionId]}
             }) {
               id
             }
@@ -149,7 +149,7 @@ describe('Option (e2e)', () => {
           query: `
           mutation {
             updateAnswer( id: ${answerId},updateAnswerInput: {
-              selectedOptionId: ${updateOptionId}
+              selectedOptionIds: ${[updateOptionId]}
             }) {
               id
             }
@@ -179,7 +179,7 @@ describe('Option (e2e)', () => {
                     question {
                       id
                     }
-                    selectedOption {
+                    selectedOptions {
                       id
                     }
                   }
@@ -198,9 +198,11 @@ describe('Option (e2e)', () => {
         question: {
           id: questionId,
         },
-        selectedOption: {
-          id: optionId,
-        },
+        selectedOptions: [
+          {
+            id: optionId,
+          },
+        ],
       });
     });
 
@@ -215,7 +217,7 @@ describe('Option (e2e)', () => {
                     question {
                       id
                     }
-                    selectedOption {
+                    selectedOptions {
                       id
                     }
                   }
