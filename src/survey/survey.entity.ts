@@ -35,7 +35,7 @@ export class Survey extends BaseEntity {
   isCompleted: boolean;
 
   @Field(() => [Answer], { nullable: true })
-  @OneToMany(() => Answer, (answer) => answer.survey)
+  @OneToMany(() => Answer, (answer) => answer.survey, { cascade: true })
   answers: Answer[];
 }
 

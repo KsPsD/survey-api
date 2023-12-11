@@ -140,9 +140,8 @@ export class SurveyService {
         answerEntities.push(answerEntity);
       }
 
-      await manager.save(answerEntities);
-
       survey.isCompleted = true;
+      survey.answers = answerEntities;
       await manager.save(survey);
 
       isSuccess = true;
